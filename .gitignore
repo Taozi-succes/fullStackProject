@@ -9,6 +9,10 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# Common
+web/.eslintcache
+web/vite.config.*.timestamp*
+
 # Dependency directories
 server/node_modules/
 web/node_modules/
@@ -32,7 +36,7 @@ web/build/
 Thumbs.db
 
 # Env files
-.env*
+# .env*
 
 # Lock files
 package-lock.json

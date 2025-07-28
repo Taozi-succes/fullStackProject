@@ -11,7 +11,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('src/accets'));
 
-app.use('/api/user', userRouter);
+app.use('/api/v1', userRouter);
 
 app.get('/', (req, res) => {
   res.send('HelloWorld 我的第一个网站');

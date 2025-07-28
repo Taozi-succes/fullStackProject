@@ -10,14 +10,14 @@ exports.login = async (req, res) => {
   try {
     const [rows] = await pool.query('SELECT * FROM users WHERE username = ?', [username]);
     if (rows.length === 0) {
-      return res.status(401).json({ success: false, msg: '用户不存在', code: 401 });
+      return res.status(401).json({ success: false, msg: '用户不存在', code: 0 });
     }
     const user = rows[0];
     if (user.password !== password) {
-      return res.json({ success: false, msg: '密码错误', code: 401 });
+      return res.json({ success: false, msg: '密码错误', code: 0 });
     }
     const token = jwt.sign({ id: user.id, username: user.username }, config.jwtSecret, { expiresIn: '2h' });
-    res.json({ success: true, msg: '登录成功',code:200, data: { token } });
+    res.json({ success: true, msg: '登录成功',code:0, data: { token } });
   } catch (err) {
     res.status(500).json({ success: false, msg: '服务器错误', error: err.message });
   }
