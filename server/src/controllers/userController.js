@@ -10,11 +10,11 @@ exports.login = async (req, res) => {
   try {
     const [rows] = await pool.query('SELECT * FROM users WHERE username = ?', [username]);
     if (rows.length === 0) {
-      return res.status(401).json({ success: false, msg: '用户不存在', code: 200 });
+      return res.status(401).json({ success: false, msg: '用户不存在', code: 401 });
     }
     const user = rows[0];
     if (user.password !== password) {
-      return res.json({ success: false, msg: '密码错误', code: 200 });
+      return res.json({ success: false, msg: '密码错误', code: 401 });
     }
     const token = jwt.sign({ id: user.id, username: user.username }, config.jwtSecret, { expiresIn: '2h' });
     res.json({ success: true, msg: '登录成功',code:200, data: { token } });
@@ -34,10 +34,10 @@ exports.getUserInfo = async (req, res) => {
     const decoded = jwt.verify(token, config.jwtSecret);
     const [rows] = await pool.query('SELECT * FROM users WHERE id = ?', [decoded.id]);
     if (rows.length === 0) {
-      return res.status(404).json({ success: false, msg: '用户不存在' });
+      return res.status(404).json({ success: false, msg: '用户不存在',code:404 });
     }
     res.json({ success: true,msg: '获取用户信息成功',code:200, data: rows[0] });
   } catch (err) {
-    res.status(401).json({ success: false, msg: 'token 无效或已过期', error: err.message, });
+    res.status(401).json({ success: false, msg: 'token 无效或已过期', error: err.message,code:401 });
   }
 };

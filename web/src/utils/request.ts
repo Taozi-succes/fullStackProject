@@ -26,14 +26,14 @@ service.interceptors.request.use((config) => {
 service.interceptors.response.use(
   (response) => {
     const data = response.data
-    if (typeof data === 'object' && data.success === false) {
+    if (typeof data === 'object' && data.code !==200) {
       // 业务级 code 错误提示，优先用枚举消息
       let msg = data.msg
       if (typeof data.code === 'number' && BizErrorMessage[data.code as BizErrorCode]) {
         msg = BizErrorMessage[data.code as BizErrorCode]
       }
       ElMessage({ message: msg || '业务请求失败', type: 'error' })
-      return Promise.reject(data)
+      // return Promise.reject(data)
     }
     return data
   },
