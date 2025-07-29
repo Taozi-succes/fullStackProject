@@ -13,6 +13,9 @@ import SwitchRoles from "./components/SwitchRoles.vue"
       <el-button v-permission="['admin', 'editor']">
         admin 和 editor
       </el-button>
+      <el-button v-permission="['user']">
+        user
+      </el-button>
     </el-card>
     <el-card header="权限函数 checkPermission 示例" shadow="never" class="margin-top-20">
       <el-text type="warning" size="large">

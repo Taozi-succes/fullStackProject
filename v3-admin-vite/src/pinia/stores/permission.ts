@@ -47,7 +47,13 @@ export const usePermissionStore = defineStore("permission", () => {
     addRoutes.value = routerConfig.thirdLevelRouteCache ? flatMultiLevelRoutes(accessedRoutes) : accessedRoutes
   }
 
-  return { routes, addRoutes, setRoutes, setAllRoutes }
+  // 重置权限状态
+  const reset = () => {
+    routes.value = []
+    addRoutes.value = []
+  }
+
+  return { routes, addRoutes, setRoutes, setAllRoutes, reset }
 })
 
 /**

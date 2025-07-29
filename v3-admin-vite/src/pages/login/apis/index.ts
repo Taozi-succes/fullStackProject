@@ -4,7 +4,7 @@ import { request } from "@/http/axios"
 /** 获取登录验证码 */
 export function getCaptchaApi() {
   return request<Auth.CaptchaResponseData>({
-    url: "auth/captcha",
+    url: "/captcha/generate",
     method: "get"
   })
 }

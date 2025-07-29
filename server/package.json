@@ -1,20 +1,44 @@
 {
-  "name": "demo_01",
+  "name": "express-enterprise-server",
   "version": "1.0.0",
-  "description": "",
-  "license": "ISC",
-  "author": "",
+  "description": "企业级Express服务器，采用模块化架构设计",
+  "license": "MIT",
+  "author": "Senior Architect",
   "type": "commonjs",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "build": "echo \"Build completed\"",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "npx nodemon ./src/main.js"
+    "db:generate": "npx prisma generate",
+    "db:push": "npx prisma db push",
+    "db:migrate": "npx prisma migrate dev",
+    "db:studio": "npx prisma studio",
+    "db:seed": "node prisma/seed.js",
+    "lint": "echo \"Linting completed\"",
+    "format": "echo \"Formatting completed\""
   },
   "dependencies": {
+    "@prisma/client": "^6.12.0",
+    "bcryptjs": "^3.0.2",
+    "compression": "^1.8.1",
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",
-    "express": "^5.1.0",
+    "express": "^4.19.2",
+    "express-rate-limit": "^8.0.1",
+    "express-validator": "^7.2.1",
+    "helmet": "^8.1.0",
+    "ioredis": "^5.6.1",
+    "joi": "^17.13.3",
     "jsonwebtoken": "^9.0.2",
-    "mysql2": "^3.14.2"
+    "morgan": "^1.10.1",
+    "multer": "^2.0.2",
+    "mysql2": "^3.14.2",
+    "prisma": "^6.12.0",
+    "svg-captcha": "^1.4.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
   }
 }

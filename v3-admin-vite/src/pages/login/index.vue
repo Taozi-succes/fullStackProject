@@ -25,12 +25,15 @@ const loading = ref(false)
 
 /** 验证码图片 URL */
 const codeUrl = ref("")
+/** 验证码ID */
+const captchaId = ref("")
 
 /** 登录表单数据 */
 const loginFormData: LoginRequestData = reactive({
   username: "admin",
-  password: "12345678",
-  code: ""
+  password: "admin1234",
+  captchaId: "",
+  captchaCode: ""
 })
 
 /** 登录表单校验规则 */
@@ -40,9 +43,9 @@ const loginFormRules: FormRules = {
   ],
   password: [
     { required: true, message: "请输入密码", trigger: "blur" },
-    { min: 8, max: 16, message: "长度在 8 到 16 个字符", trigger: "blur" }
+    { min: 3, max: 16, message: "长度在 8 到 16 个字符", trigger: "blur" }
   ],
-  code: [
+  captchaCode: [
     { required: true, message: "请输入验证码", trigger: "blur" }
   ]
 }
@@ -55,10 +58,25 @@ function handleLogin() {
       return
     }
     loading.value = true
-    loginApi(loginFormData).then(({ data }) => {
-      userStore.setToken(data.token)
-      router.push("/")
-    }).catch(() => {
+    loginApi(loginFormData).then((response) => {
+      // 后端返回的数据结构：{ success: true, data: { user: {...}, tokens: { accessToken: "...", refreshToken: "..." } } }
+      if (response.success && response.data && response.data.tokens) {
+        // 设置访问令牌和刷新令牌
+        userStore.setToken(response.data.tokens.accessToken)
+        userStore.setRefreshToken(response.data.tokens.refreshToken)
+        // 设置用户信息
+        // if (response.data.user) {
+        //   userStore.setUserInfo(response.data.user)
+        // }
+        ElMessage.success(response.message || "登录成功")
+        router.push("/")
+      } else {
+        ElMessage.error(response.message || "登录失败")
+        createCode()
+        loginFormData.password = ""
+      }
+    }).catch((error) => {
+      console.error("登录失败:", error)
       createCode()
       loginFormData.password = ""
     }).finally(() => {
@@ -70,13 +88,24 @@ function handleLogin() {
 /** 创建验证码 */
 function createCode() {
   // 清空已输入的验证码
-  loginFormData.code = ""
+  loginFormData.captchaCode = ""
   // 清空验证图片
   codeUrl.value = ""
+  captchaId.value = ""
   // 获取验证码图片
   getCaptchaApi().then((res) => {
-    codeUrl.value = res.data
+    const captchaData = res.data
+    // 将SVG字符串转换为Data URL
+    const svgDataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(captchaData.captchaSvg)}`
+    codeUrl.value = svgDataUrl
+    captchaId.value = captchaData.captchaId
+    loginFormData.captchaId = captchaData.captchaId
   })
+}
+
+/** 前往注册页面 */
+function goToRegister() {
+  router.push("/register")
 }
 
 // 初始化验证码
@@ -116,9 +145,9 @@ createCode()
               @focus="handleFocus"
             />
           </el-form-item>
-          <el-form-item prop="code">
+          <el-form-item prop="captchaCode">
             <el-input
-              v-model.trim="loginFormData.code"
+              v-model.trim="loginFormData.captchaCode"
               placeholder="验证码"
               type="text"
               tabindex="3"
@@ -147,6 +176,12 @@ createCode()
           <el-button :loading="loading" type="primary" size="large" @click.prevent="handleLogin">
             登 录
           </el-button>
+          <div class="register-link">
+            <span>还没有账号？</span>
+            <el-link type="primary" @click="goToRegister">
+              立即注册
+            </el-link>
+          </div>
         </el-form>
       </div>
     </div>
@@ -200,6 +235,17 @@ createCode()
       .el-button {
         width: 100%;
         margin-top: 10px;
+      }
+      .register-link {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-top: 20px;
+        font-size: 14px;
+        span {
+          color: var(--el-text-color-regular);
+          margin-right: 8px;
+        }
       }
     }
   }

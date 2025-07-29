@@ -3,15 +3,18 @@ import { setToken as _setToken, getToken, removeToken } from "@@/utils/cache/coo
 import { pinia } from "@/pinia"
 import { resetRouter } from "@/router"
 import { routerConfig } from "@/router/config"
+import { usePermissionStore } from "./permission"
 import { useSettingsStore } from "./settings"
 import { useTagsViewStore } from "./tags-view"
 
 export const useUserStore = defineStore("user", () => {
   const token = ref<string>(getToken() || "")
-
+  const refreshToken = ref<string>("")
   const roles = ref<string[]>([])
-
   const username = ref<string>("")
+  const email = ref<string>("")
+  const avatar = ref<string>("")
+  const id = ref<number>(0)
 
   const tagsViewStore = useTagsViewStore()
 
@@ -23,12 +26,51 @@ export const useUserStore = defineStore("user", () => {
     token.value = value
   }
 
+  // 设置刷新令牌
+  const setRefreshToken = (value: string) => {
+    refreshToken.value = value
+  }
+
+  // 设置用户名
+  const setUsername = (value: string) => {
+    username.value = value
+  }
+
+  // 设置邮箱
+  const setEmail = (value: string) => {
+    email.value = value
+  }
+
+  // 设置头像
+  const setAvatar = (value: string) => {
+    avatar.value = value
+  }
+
+  // 设置用户ID
+  const setId = (value: number) => {
+    id.value = value
+  }
+
+  // 设置角色
+  const setRoles = (value: string[]) => {
+    roles.value = value
+  }
+
+  // 设置用户信息
+  const setUserInfo = (userInfo: any) => {
+    setId(userInfo.id)
+    setUsername(userInfo.username)
+    setEmail(userInfo.email || "")
+    setAvatar(userInfo.avatar || "")
+  }
+
   // 获取用户详情
   const getInfo = async () => {
     const { data } = await getCurrentUserApi()
     username.value = data.username
+    setUserInfo(data)
     // 验证返回的 roles 是否为一个非空数组，否则塞入一个没有任何作用的默认角色，防止路由守卫逻辑进入无限循环
-    roles.value = data.roles?.length > 0 ? data.roles : routerConfig.defaultRoles
+    setRoles(data.roles?.length > 0 ? data.roles : routerConfig.defaultRoles)
   }
 
   // 模拟角色变化
@@ -42,11 +84,19 @@ export const useUserStore = defineStore("user", () => {
 
   // 登出
   const logout = () => {
+    const permissionStore = usePermissionStore()
     removeToken()
     token.value = ""
+    refreshToken.value = ""
     roles.value = []
+    username.value = ""
+    email.value = ""
+    avatar.value = ""
+    id.value = 0
     resetRouter()
+    permissionStore.reset()
     resetTagsView()
+    console.log("登出成功")
   }
 
   // 重置 Token
@@ -64,7 +114,27 @@ export const useUserStore = defineStore("user", () => {
     }
   }
 
-  return { token, roles, username, setToken, getInfo, changeRoles, logout, resetToken }
+  return {
+    token,
+    refreshToken,
+    roles,
+    username,
+    email,
+    avatar,
+    id,
+    setToken,
+    setRefreshToken,
+    setUsername,
+    setEmail,
+    setAvatar,
+    setId,
+    setRoles,
+    setUserInfo,
+    getInfo,
+    changeRoles,
+    logout,
+    resetToken
+  }
 })
 
 /**

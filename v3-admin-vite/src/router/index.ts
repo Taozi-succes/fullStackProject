@@ -47,6 +47,13 @@ export const constantRoutes: RouteRecordRaw[] = [
     }
   },
   {
+    path: "/register",
+    component: () => import("@/pages/register/index.vue"),
+    meta: {
+      hidden: true
+    }
+  },
+  {
     path: "/",
     component: Layouts,
     redirect: "/dashboard",
@@ -212,7 +219,7 @@ export const dynamicRoutes: RouteRecordRaw[] = [
       title: "权限演示",
       elIcon: "Lock",
       // 可以在根路由中设置角色
-      roles: ["admin", "editor"],
+      roles: ["admin", "editor", "user"],
       alwaysShow: true
     },
     children: [
@@ -236,6 +243,32 @@ export const dynamicRoutes: RouteRecordRaw[] = [
           roles: undefined
         }
       }
+    ]
+  },
+  {
+    path: "/norole",
+    component: Layouts,
+    redirect: "/norole/page-level",
+    name: "Porole",
+    meta: {
+      title: "普通用户演示",
+      elIcon: "Lock",
+      // 可以在根路由中设置角色
+      roles: ["user"],
+      alwaysShow: true
+    },
+    children: [
+      {
+        path: "page-level",
+        component: () => import("@/pages/demo/norole/page-level.vue"),
+        name: "PermissionPageLevel",
+        meta: {
+          title: "页面级",
+          // 或者在子路由中设置角色
+          roles: ["user"]
+        }
+      }
+
     ]
   }
 ]

@@ -35,7 +35,7 @@ const VITE_PUBLIC_PATH = import.meta.env.VITE_PUBLIC_PATH
 
 export const routerConfig: RouterConfig = {
   history: VITE_ROUTER_HISTORY === "hash" ? createWebHashHistory(VITE_PUBLIC_PATH) : createWebHistory(VITE_PUBLIC_PATH),
-  dynamic: true,
+  dynamic: false,
   defaultRoles: ["DEFAULT_ROLE"],
   thirdLevelRouteCache: true
 }
