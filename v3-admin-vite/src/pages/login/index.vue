@@ -61,13 +61,15 @@ function handleLogin() {
     loginApi(loginFormData).then((response) => {
       // 后端返回的数据结构：{ success: true, data: { user: {...}, tokens: { accessToken: "...", refreshToken: "..." } } }
       if (response.success && response.data && response.data.tokens) {
+        // 先清空之前的用户状态，确保路由守卫重新生成动态路由
+        userStore.setRoles([])
         // 设置访问令牌和刷新令牌
         userStore.setToken(response.data.tokens.accessToken)
         userStore.setRefreshToken(response.data.tokens.refreshToken)
         // 设置用户信息
-        // if (response.data.user) {
-        //   userStore.setUserInfo(response.data.user)
-        // }
+        if (response.data.user) {
+          userStore.setUserInfo(response.data.user)
+        }
         ElMessage.success(response.message || "登录成功")
         router.push("/")
       } else {

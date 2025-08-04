@@ -29,10 +29,17 @@ export const usePermissionStore = defineStore("permission", () => {
 
   // 有访问权限的动态路由
   const addRoutes = ref<RouteRecordRaw[]>([])
+  const isCommonUser = ref(false)
 
   // 根据角色生成可访问的 Routes（可访问的路由 = 常驻路由 + 有访问权限的动态路由）
+  // 根据角色生成可访问的 Routes
   const setRoutes = (roles: string[]) => {
     const accessedRoutes = filterDynamicRoutes(dynamicRoutes, roles)
+    console.log("用户角色:", roles)
+    console.log("生成可访问的动态路由:", accessedRoutes)
+    if (accessedRoutes.length === 0) {
+      isCommonUser.value = true
+    }
     set(accessedRoutes)
   }
 
@@ -53,7 +60,7 @@ export const usePermissionStore = defineStore("permission", () => {
     addRoutes.value = []
   }
 
-  return { routes, addRoutes, setRoutes, setAllRoutes, reset }
+  return { routes, addRoutes, isCommonUser, setRoutes, setAllRoutes, reset }
 })
 
 /**

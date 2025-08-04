@@ -3,7 +3,7 @@
  * 处理用户相关的HTTP请求
  */
 const UserService = require('../services/user.service');
-const { LoginDto, RegisterDto, UpdateUserDto, ChangePasswordDto } = require('../dto/user.dto');
+const { LoginDto, RegisterDto, UpdateUserDto,AdminUpdateUserDto, ChangePasswordDto } = require('../dto/user.dto');
 const logger = require('../../../core/logger');
 const { HTTP_STATUS, ERROR_CODES } = require('../../../common/constants');
 const { JwtUtils } = require('../../../shared/utils');
@@ -157,6 +157,112 @@ class UserController {
       
     } catch (error) {
       logger.error('更新用户信息控制器错误:', error);
+      res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        code: ERROR_CODES.INTERNAL_ERROR,
+        message: '服务器内部错误'
+      });
+    }
+  };
+
+  /**
+   * 管理员更新用户信息（仅管理员可用）
+   * PUT /api/admin/user/:id
+   */
+  adminUpdateUser = async (req, res) => {
+    try {
+      const { id } = req.params;
+      const currentUserId = req.user.userId;
+      
+      // 检查当前用户是否为管理员
+      logger.info('开始检查管理员权限', { currentUserId, targetUserId: id });
+      const currentUser = await this.userService.findUserById(currentUserId);
+      
+      if (!currentUser) {
+        logger.warn('当前用户不存在', { currentUserId });
+        return res.status(HTTP_STATUS.FORBIDDEN).json({
+          success: false,
+          code: ERROR_CODES.INSUFFICIENT_PERMISSIONS,
+          message: '用户不存在'
+        });
+      }
+      
+      // 解析用户角色（从JSON字符串转换为数组）
+      let userRoles = [];
+      try {
+        userRoles = typeof currentUser.roles === 'string' ? JSON.parse(currentUser.roles) : currentUser.roles;
+        logger.info('解析后的用户角色', { userRoles });
+      } catch (error) {
+        logger.error('解析用户角色失败:', { error: error.message, roles: currentUser.roles });
+        return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+          success: false,
+          code: ERROR_CODES.INTERNAL_ERROR,
+          message: '用户角色数据异常'
+        });
+      }
+      
+      if (!Array.isArray(userRoles) || !userRoles.includes('admin')) {
+        logger.warn('权限不足', { userRoles, hasAdmin: userRoles.includes('admin') });
+        return res.status(HTTP_STATUS.FORBIDDEN).json({
+          success: false,
+          code: ERROR_CODES.INSUFFICIENT_PERMISSIONS,
+          message: '权限不足，仅管理员可以修改用户信息'
+        });
+      }
+      
+      // 防止管理员修改自己的角色和状态
+      if (parseInt(id) === currentUserId && (req.body.roles || req.body.status)) {
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({
+          success: false,
+          code: ERROR_CODES.VALIDATION_ERROR,
+          message: '不能修改自己的角色和状态'
+        });
+      }
+      
+      // 数据验证
+      const adminUpdateDto = new AdminUpdateUserDto(req.body);
+      const validationResult = adminUpdateDto.validate();
+      
+      if (!validationResult.isValid) {
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({
+          success: false,
+          code: ERROR_CODES.VALIDATION_ERROR,
+          message: '请求参数验证失败',
+          errors: validationResult.errors
+        });
+      }
+      
+      // 获取有效的更新字段
+      const updateFields = adminUpdateDto.getUpdateFields();
+      
+      if (Object.keys(updateFields).length === 0) {
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({
+          success: false,
+          code: ERROR_CODES.VALIDATION_ERROR,
+          message: '没有提供要更新的字段'
+        });
+      }
+      
+      // 调用服务层更新用户
+      const result = await this.userService.adminUpdateUser(parseInt(id), updateFields);
+      
+      if (!result.success) {
+        const statusCode = this.getStatusCodeByErrorCode(result.code);
+        return res.status(statusCode).json(result);
+      }
+      
+      // 记录管理员操作
+      logger.warn('管理员更新用户信息', {
+        adminId: currentUserId,
+        targetUserId: id,
+        updatedFields: Object.keys(updateFields),
+        ip: req.ip
+      });
+      
+      res.status(HTTP_STATUS.OK).json(result);
+      
+    } catch (error) {
+      logger.error('管理员更新用户控制器错误:', error);
       res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
         success: false,
         code: ERROR_CODES.INTERNAL_ERROR,
@@ -535,6 +641,91 @@ class UserController {
 
     return errorCodeMap[errorCode] || HTTP_STATUS.INTERNAL_SERVER_ERROR;
   }
+
+  /**
+   * 获取所有用户列表（仅管理员可用）
+   * GET /api/user/list
+   */
+  getAllUsers = async (req, res) => {
+    console.log('用户==',req.user.roles)
+    try {
+      const { page = 1, limit = 10, search = '' } = req.query;
+      
+      // 调用服务层获取用户列表
+      const result = await this.userService.getAllUsers({
+        page: parseInt(page),
+        limit: parseInt(limit),
+        search
+      });
+      
+      if (!result) {
+        return res.error('获取用户列表失败')
+      }
+      res.success(result,'获取用户列表成功!');
+      
+    } catch (error) {
+      logger.error('获取所有用户控制器错误:', error);
+      res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        code: ERROR_CODES.INTERNAL_ERROR,
+        message: '服务器内部错误'
+      });
+    }
+  };
+
+  /**
+   * 删除指定用户（仅管理员可用）
+   * DELETE /api/user/:id
+   */
+  deleteUser = async (req, res) => {
+    try {
+      // 检查是否为管理员
+      if (!req.user.roles.includes('admin')) {
+        return res.status(HTTP_STATUS.FORBIDDEN).json({
+          success: false,
+          code: ERROR_CODES.PERMISSION_DENIED,
+          message: '权限不足，只有管理员可以删除用户'
+        });
+      }
+
+      const { id } = req.params;
+      const currentUserId = req.user.userId;
+      
+      // 防止管理员删除自己
+      if (parseInt(id) === currentUserId) {
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({
+          success: false,
+          code: ERROR_CODES.VALIDATION_ERROR,
+          message: '不能删除自己的账户'
+        });
+      }
+      
+      // 调用服务层删除用户
+      const result = await this.userService.deleteUser(parseInt(id));
+      
+      if (!result.success) {
+        const statusCode = this.getStatusCodeByErrorCode(result.code);
+        return res.status(statusCode).json(result);
+      }
+
+      // 记录删除操作
+      logger.warn('管理员删除用户', {
+        adminId: currentUserId,
+        deletedUserId: id,
+        ip: req.ip
+      });
+
+      res.status(HTTP_STATUS.OK).json(result);
+      
+    } catch (error) {
+      logger.error('删除用户控制器错误:', error);
+      res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        code: ERROR_CODES.INTERNAL_ERROR,
+        message: '服务器内部错误'
+      });
+    }
+  };
 }
 
 module.exports = UserController;

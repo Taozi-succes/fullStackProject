@@ -3,6 +3,7 @@
  * 定义API请求和响应的数据结构
  */
 const { VALIDATION_RULES } = require('../../../common/constants');
+const logger = require('../../../core/logger');
 const { ValidationUtils } = require('../../../shared/utils');
 
 /**
@@ -323,6 +324,152 @@ class UpdateUserDto {
 }
 
 /**
+ * 管理员更新用户DTO
+ */
+class AdminUpdateUserDto {
+  constructor(data) {
+    this.username = data.username?.trim();
+    this.email = data.email?.trim().toLowerCase();
+    this.avatar = data.avatar?.trim();
+    this.roles = data.roles;
+    this.status = data.status;
+  }
+
+  /**
+   * 获取数据
+   */
+  getData() {
+    return {
+      username: this.username,
+      email: this.email,
+      avatar: this.avatar,
+      roles: this.roles,
+      status: this.status
+    };
+  }
+
+  /**
+   * 验证管理员更新数据
+   */
+  validate() {
+    const errors = [];
+
+    // 验证用户名（如果提供）
+    if (this.username !== undefined) {
+      if (!this.username) {
+        errors.push({
+          field: 'username',
+          message: '用户名不能为空'
+        });
+      } else if (this.username.length < VALIDATION_RULES.USERNAME.MIN_LENGTH) {
+        errors.push({
+          field: 'username',
+          message: `用户名长度不能少于${VALIDATION_RULES.USERNAME.MIN_LENGTH}位`
+        });
+      } else if (this.username.length > VALIDATION_RULES.USERNAME.MAX_LENGTH) {
+        errors.push({
+          field: 'username',
+          message: `用户名长度不能超过${VALIDATION_RULES.USERNAME.MAX_LENGTH}位`
+        });
+      } else if (!VALIDATION_RULES.USERNAME.PATTERN.test(this.username)) {
+        errors.push({
+          field: 'username',
+          message: '用户名只能包含字母、数字和下划线'
+        });
+      }
+    }
+
+    // 验证邮箱（如果提供）
+    if (this.email !== undefined) {
+      if (!this.email) {
+        errors.push({
+          field: 'email',
+          message: '邮箱不能为空'
+        });
+      } else if (!ValidationUtils.isEmail(this.email)) {
+        errors.push({
+          field: 'email',
+          message: '邮箱格式无效'
+        });
+      }
+    }
+
+    // 验证头像URL（如果提供）
+    if (this.avatar !== undefined && this.avatar && !ValidationUtils.isUrl(this.avatar)) {
+      errors.push({
+        field: 'avatar',
+        message: '头像URL格式无效'
+      });
+    }
+
+    // 验证角色（如果提供）
+    if (this.roles !== undefined) {
+      if (!Array.isArray(this.roles)) {
+        errors.push({
+          field: 'roles',
+          message: '角色必须是数组格式'
+        });
+      } else if (this.roles.length === 0) {
+        errors.push({
+          field: 'roles',
+          message: '角色不能为空'
+        });
+      } else {
+        const validRoles = ['user', 'admin', 'moderator'];
+        const invalidRoles = this.roles.filter(role => !validRoles.includes(role));
+        if (invalidRoles.length > 0) {
+          errors.push({
+            field: 'roles',
+            message: `无效的角色: ${invalidRoles.join(', ')}`
+          });
+        }
+      }
+    }
+
+    // 验证状态（如果提供）
+    if (this.status !== undefined) {
+      const validStatuses = ['ACTIVE', 'INACTIVE', 'DELETED'];
+      if (!validStatuses.includes(this.status)) {
+        errors.push({
+          field: 'status',
+          message: `无效的状态，有效值: ${validStatuses.join(', ')}`
+        });
+      }
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
+  }
+
+  /**
+   * 获取有效的更新字段
+   */
+  getUpdateFields() {
+    const fields = {};
+    
+    if (this.username !== undefined) {
+      fields.username = this.username;
+    }
+    if (this.email !== undefined) {
+      fields.email = this.email;
+    }
+    if (this.avatar !== undefined) {
+      fields.avatar = this.avatar;
+    }
+    if (this.roles !== undefined) {
+      fields.roles = JSON.stringify(this.roles);
+    }
+    if (this.status !== undefined) {
+      fields.status = this.status;
+    }
+    
+    return fields;
+  }
+}
+
+/**
  * 修改密码DTO
  */
 class ChangePasswordDto {
@@ -465,6 +612,7 @@ module.exports = {
   LoginDto,
   RegisterDto,
   UpdateUserDto,
+  AdminUpdateUserDto,
   ChangePasswordDto,
   UserResponseDto
 };

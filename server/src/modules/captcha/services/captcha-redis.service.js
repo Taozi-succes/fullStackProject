@@ -8,6 +8,7 @@ const logger = require('../../../core/logger');
 const redisService = require('../../../core/database/redis');
 const { StringUtils } = require('../../../shared/utils');
 const { CACHE_KEYS, TIME_CONSTANTS } = require('../../../common/constants');
+const dayjs = require('dayjs');
 
 class CaptchaRedisService {
   constructor() {
@@ -67,23 +68,41 @@ class CaptchaRedisService {
 
       console.log('验证码生成成功，文本:', captcha.text);
 
-      const expiresAt = new Date(Date.now() + expireTime * 1000);
+      const expiresAt = dayjs().add(expireTime, 'seconds').format("YYYY-MM-DDTHH:mm:ss.SSSZ");
 
       // 存储验证码信息到Redis
       const captchaInfo = {
         id: captchaId,
         text: captcha.text.toLowerCase(), // 统一转为小写
         type,
-        createdAt: new Date().toISOString(),
-        expiresAt: expiresAt.toISOString(),
+        createdAt: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+        expiresAt, // 使用本地时间的ISO格式
         attempts: 0,
         maxAttempts
       };
 
       // 使用Redis存储，设置过期时间
-      await redisService.set(captchaId, captchaInfo, expireTime);
-
-      console.log('验证码存储到Redis成功');
+      try {
+        await redisService.set(captchaId, captchaInfo, expireTime);
+        
+        // 立即验证存储是否成功
+        const storedValue = await redisService.get(captchaId);
+        const currentTTL = await redisService.ttl(captchaId);
+        
+        if (storedValue && currentTTL > 0) {
+          console.log('验证码存储到Redis成功');
+          console.log('当前系统时间:', dayjs().format('YYYY-MM-DD HH:mm:ss')); // 只加这一行
+          console.log('存储验证 - 过期时间:', dayjs().add(currentTTL, 'seconds').format('YYYY-MM-DD HH:mm:ss'));
+        } else {
+          console.error('验证码存储验证失败!');
+          console.error('存储后查询 - 值:', storedValue ? '存在' : 'null');
+          console.error('存储后查询 - TTL:', currentTTL);
+          throw new Error('验证码存储到Redis失败');
+        }
+      } catch (error) {
+        console.error('Redis存储操作失败:', error);
+        throw new Error(`验证码存储失败: ${error.message}`);
+      }
 
       logger.info('验证码生成成功', {
         captchaId,
@@ -156,6 +175,7 @@ class CaptchaRedisService {
           message: '验证码已过期'
         };
       }
+      
 
       // 检查尝试次数
       if (captchaInfo.attempts >= captchaInfo.maxAttempts) {

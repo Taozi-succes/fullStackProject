@@ -11,8 +11,6 @@ export interface RegisterRequestData {
   captchaId: string
   /** 验证码 */
   captchaCode: string
-  /** 同意条款 */
-  agreeTerms: boolean
 }
 
 export interface RegisterData {

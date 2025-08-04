@@ -10,10 +10,29 @@ const { CACHE_KEYS, TIME_CONSTANTS } = require('../../../common/constants');
 
 class CaptchaService {
   constructor() {
+    // 防止外部直接实例化
+    if (CaptchaService.instance) {
+      return CaptchaService.instance;
+    }
+
     this.captchaStore = new Map(); // 简单内存存储，生产环境建议使用Redis
     this.cleanupInterval = setInterval(() => {
       this.cleanup();
     }, 5 * TIME_CONSTANTS.MINUTE); // 每5分钟清理一次过期验证码
+
+    // 设置单例实例
+    CaptchaService.instance = this;
+  }
+
+  /**
+   * 获取单例实例
+   * @returns {CaptchaService} 验证码服务实例
+   */
+  static getInstance() {
+    if (!CaptchaService.instance) {
+      CaptchaService.instance = new CaptchaService();
+    }
+    return CaptchaService.instance;
   }
 
   /**
@@ -91,6 +110,10 @@ class CaptchaService {
       this.captchaStore.set(captchaId, captchaInfo);
       
       console.log('验证码存储成功');
+
+      const currentCaptchaInfo=this.captchaStore.get(captchaId);
+      console.log('当前储存验证码信息:   可以打印', currentCaptchaInfo);
+      console.log('当前map信息', this.captchaStore);
       
       logger.info('验证码生成成功', {
         captchaId,
@@ -118,6 +141,11 @@ class CaptchaService {
    * @returns {Object} 验证结果
    */
   async verifyCaptcha(captchaId, userInput) {
+    console.log('开始验证验证码，ID:', captchaId, '用户输入:', userInput);
+    console.log('当前服务实例:', this.constructor.name);
+    console.log('当前Map大小:', this.captchaStore.size);
+    console.log('Map中的所有键:', Array.from(this.captchaStore.keys()));
+    
     try {
       // 开发环境测试验证码支持
       if (process.env.NODE_ENV === 'development' && 
@@ -131,6 +159,7 @@ class CaptchaService {
       }
       
       const captchaInfo = this.captchaStore.get(captchaId);
+      console.log('验证码信息==========:', captchaInfo);
       
       if (!captchaInfo) {
         return {
@@ -225,50 +254,17 @@ class CaptchaService {
    * @returns {Object} 验证码信息
    */
   async generateMathCaptcha(options = {}) {
-    try {
-      const mathOptions = {
-        width: config.get('captcha.width'),
-        height: config.get('captcha.height'),
-        fontSize: config.get('captcha.fontSize') || 50,
-        noise: config.get('captcha.noise') || 1,
-        color: config.get('captcha.color'),
-        background: options.background || '#f0f0f0',
-        ...options
-      };
-
-      // 生成数学运算验证码
-      const captcha = svgCaptcha.createMathExpr(mathOptions);
-      
-      // 生成唯一标识
-      const captchaId = this.generateCaptchaId();
-      
-      // 存储验证码信息
-      const captchaInfo = {
-        id: captchaId,
-        text: captcha.text, // 数学运算的结果
-        type: 'math',
-        createdAt: new Date(),
-        expiresAt: new Date(Date.now() + 5 * TIME_CONSTANTS.MINUTE),
-        attempts: 0,
-        maxAttempts: 3
-      };
-      
-      this.captchaStore.set(captchaId, captchaInfo);
-      
-      logger.info('数学验证码生成成功', {
-        captchaId,
-        expression: captcha.text
-      });
-      
-      return {
-        id: captchaId,
-        svg: captcha.data,
-        expiresAt: captchaInfo.expiresAt
-      };
-    } catch (error) {
-      logger.error('数学验证码生成失败:', error);
-      throw new Error('数学验证码生成失败');
-    }
+    const mathOptions = {
+      width: config.get('captcha.width'),
+      height: config.get('captcha.height'),
+      fontSize: config.get('captcha.fontSize') || 50,
+      noise: config.get('captcha.noise') || 1,
+      color: config.get('captcha.color'),
+      background: options.background || '#f0f0f0',
+      ...options
+    };
+    
+    return this.generateCaptcha('math', mathOptions);
   }
 
   /**
@@ -360,12 +356,14 @@ class CaptchaService {
       expired: expiredCount,
       totalGenerated: this.captchaStore.size,
       totalVerified: activeCount,
-      activeCaptchas: activeCount
+      activeCaptchas: activeCount,
+      // 查看当前所有的验证码键值对
+      captchaStore: Array.from(this.captchaStore)
     };
   }
 
   /**
-   * 销毁服务
+   * 销毁服务实例
    */
   destroy() {
     if (this.cleanupInterval) {
@@ -373,6 +371,19 @@ class CaptchaService {
     }
     this.captchaStore.clear();
   }
+
+  /**
+   * 销毁单例实例（主要用于测试或应用关闭）
+   */
+  static destroyInstance() {
+    if (CaptchaService.instance) {
+      CaptchaService.instance.destroy();
+      CaptchaService.instance = null;
+    }
+  }
 }
+
+// 静态属性
+CaptchaService.instance = null;
 
 module.exports = CaptchaService;

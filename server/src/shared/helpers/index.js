@@ -46,7 +46,8 @@ const authenticateToken = async (req, res, next) => {
         id: true,
         username: true,
         email: true,
-        status: true
+        status: true,
+        roles: true
       }
     });
 
@@ -71,7 +72,8 @@ const authenticateToken = async (req, res, next) => {
       userId: user.id,
       username: user.username,
       email: user.email,
-      status: user.status
+      status: user.status,
+      roles: JSON.parse(user.roles)
     };
 
     next();
@@ -143,21 +145,71 @@ const optionalAuth = async (req, res, next) => {
 };
 
 /**
- * 角色权限中间件
+ * 角色权限中间件（改进版）
  * 检查用户是否具有指定角色
+ * @param {string|Array} requiredRoles - 必需的角色，可以是字符串或数组
+ * @param {Object} options - 配置选项
+ * @param {boolean} options.requireAll - 是否需要拥有所有角色（默认false，只需要其中一个）
+ * @param {boolean} options.strict - 严格模式，角色名必须完全匹配（默认true）
  */
-const requireRole = (roles) => {
+const requireRole = (requiredRoles, options = {}) => {
   return (req, res, next) => {
-    if (!req.user) {
-      return res.status(HTTP_STATUS.UNAUTHORIZED).json({
-        success: false,
-        code: ERROR_CODES.TOKEN_MISSING,
-        message: '需要登录'
-      });
+
+    // 检查用户是否有角色信息
+    if (!req.user.roles || !Array.isArray(req.user.roles)) {
+      logger.warn('用户角色信息缺失', { userId: req.user.userId });
+      return res.error('用户角色信息缺失，无法进行权限检查!!',ERROR_CODES.INSUFFICIENT_PERMISSIONS);
     }
 
-    // 这里可以扩展角色检查逻辑
-    // 目前简化处理，所有认证用户都有基本权限
+    // 标准化必需角色为数组
+    const rolesArray = Array.isArray(requiredRoles) ? requiredRoles : [requiredRoles];
+    const userRoles = req.user.roles;
+    
+    // 配置选项
+    const { requireAll = false, strict = true } = options;
+
+    // 角色匹配函数
+    const roleMatches = (userRole, requiredRole) => {
+      if (strict) {
+        return userRole === requiredRole;
+      } else {
+        return userRole.toLowerCase() === requiredRole.toLowerCase();
+      }
+    };
+
+    // 检查权限逻辑
+    let hasPermission = false;
+
+    if (requireAll) {
+      // 需要拥有所有指定角色
+      hasPermission = rolesArray.every(requiredRole => 
+        userRoles.some(userRole => roleMatches(userRole, requiredRole))
+      );
+    } else {
+      // 只需要拥有其中一个角色
+      hasPermission = rolesArray.some(requiredRole => 
+        userRoles.some(userRole => roleMatches(userRole, requiredRole))
+      );
+    }
+
+    if (!hasPermission) {
+      logger.warn('权限检查认证不通过', {
+        userId: req.user.userId,
+        userRoles: userRoles,
+        requiredRoles: rolesArray,
+        requireAll: requireAll
+      });
+
+      return res.error('权限不足，无法访问此资源!!',ERROR_CODES.INSUFFICIENT_PERMISSIONS);
+    }
+
+    // 权限检查通过，记录日志
+    logger.info('权限检查通过', {
+      userId: req.user.userId,
+      userRoles: userRoles,
+      requiredRoles: rolesArray
+    });
+
     next();
   };
 };
@@ -310,17 +362,17 @@ const responseFormatter = (req, res, next) => {
       success: true,
       message,
       data,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toLocaleString()
     });
   };
 
   // 错误响应格式化
-  res.error = (message = '操作失败', code = ERROR_CODES.INTERNAL_ERROR, statusCode = HTTP_STATUS.INTERNAL_SERVER_ERROR) => {
+  res.error = (message = '操作失败', code = ERROR_CODES.INTERNAL_ERROR, statusCode = HTTP_STATUS.OK) => {
     res.status(statusCode).json({
       success: false,
       code,
       message,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toLocaleString()
     });
   };
 

@@ -4,13 +4,13 @@
  */
 const express = require('express');
 const rateLimit = require('express-rate-limit');
-const CaptchaController = require('../modules/captcha/controllers/captcha.controller');
+const { getCaptchaController } = require('../modules/captcha/controllers');
 const { validateCaptcha } = require('../shared/validators');
 const config = require('../core/config');
 const logger = require('../core/logger');
 
 const router = express.Router();
-const captchaController = new CaptchaController();
+const captchaController = getCaptchaController();
 
 // 验证码生成限流配置
 const captchaGenerateLimiter = rateLimit({

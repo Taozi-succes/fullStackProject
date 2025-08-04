@@ -8,7 +8,7 @@ const path = require('path');
 const fs = require('fs');
 const rateLimit = require('express-rate-limit');
 const UserController = require('../modules/user/controllers/user.controller');
-const { authenticateToken } = require('../shared/helpers');
+const { authenticateToken ,requireRole} = require('../shared/helpers');
 const {
   validateUpdateUser,
   validateChangePassword,
@@ -376,6 +376,18 @@ router.get('/export',
 );
 
 /**
+ * @route   GET /api/user/list
+ * @desc    获取所有用户列表（仅管理员可用）
+ * @access  Private (Admin only)
+ */
+router.get('/list', 
+  authenticateToken,
+  requireRole('admin'),
+  apiLimiter,
+  userController.getAllUsers
+);
+
+/**
  * @route   PUT /api/user/:id/roles
  * @desc    更新用户角色（仅管理员可用）
  * @access  Private (Admin only)
@@ -385,6 +397,18 @@ router.put('/:id/roles',
   sensitiveOpLimiter,
   validateId,
   (req, res) => userController.updateUserRoles(req, res)
+);
+
+/**
+ * @route   DELETE /api/user/:id
+ * @desc    删除指定用户（仅管理员可用）
+ * @access  Private (Admin only)
+ */
+router.delete('/:id', 
+  authenticateToken,
+  sensitiveOpLimiter,
+  validateId,
+  userController.deleteUser
 );
 
 module.exports = router;

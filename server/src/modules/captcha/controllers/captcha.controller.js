@@ -4,8 +4,6 @@
  */
 const CaptchaService = require('../services/captcha.service');
 const CaptchaRedisService = require('../services/captcha-redis.service');
-const config = require('../../../core/config');
-const redisService = require('../../../core/database/redis');
 const logger = require('../../../core/logger');
 const { HTTP_STATUS, RESPONSE_MESSAGES } = require('../../../common/constants');
 const { CaptchaTypeEnum } = require('../../../common/enums');
@@ -13,37 +11,18 @@ const { CaptchaTypeEnum } = require('../../../common/enums');
 class CaptchaController {
   constructor() {
     // 根据配置选择验证码服务
-    this.useRedis = process.env.CAPTCHA_USE_REDIS === 'true' || false;
-    
-    if (this.useRedis) {
+    const useRedis = process.env.CAPTCHA_USE_REDIS === 'true';
+    if (useRedis) {
       this.captchaService = new CaptchaRedisService();
-      logger.info('验证码控制器使用Redis存储');
     } else {
       this.captchaService = new CaptchaService();
-      logger.info('验证码控制器使用内存存储');
     }
   }
 
-  /**
-   * 切换到Redis存储
-   */
-  async switchToRedis() {
-    if (!this.useRedis) {
-      this.captchaService = new CaptchaRedisService();
-      this.useRedis = true;
-      logger.info('验证码服务已切换到Redis存储');
-    }
-  }
-
-  /**
-   * 切换到内存存储
-   */
-  switchToMemory() {
-    if (this.useRedis) {
-      this.captchaService = new CaptchaService();
-      this.useRedis = false;
-      logger.info('验证码服务已切换到内存存储');
-    }
+  // 静态方法用于获取服务类型信息（仅用于调试）
+  static getServiceType() {
+    const useRedis = process.env.CAPTCHA_USE_REDIS === 'true';
+    return useRedis ? 'Redis存储服务' : '内存存储服务';
   }
 
   /**
@@ -64,7 +43,9 @@ class CaptchaController {
         });
       }
 
-      const options = {};
+      const options = {
+        expireTime: 300, // 默认5分钟
+      };
       
       // 处理自定义选项
       if (width && !isNaN(width)) {
@@ -103,7 +84,7 @@ class CaptchaController {
           captchaId: result.id,
           captchaSvg: result.svg,
           expiresAt: result.expiresAt,
-          expiresIn: 300 // 5分钟，单位：秒
+          expiresIn: options.expireTime
         }
       });
 
@@ -113,6 +94,7 @@ class CaptchaController {
         ip: req.ip,
         userAgent: req.get('User-Agent')
       });
+      
 
     } catch (error) {
       console.error('验证码控制器错误详情:', error);

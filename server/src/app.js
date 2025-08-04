@@ -49,7 +49,7 @@ class Application {
           defaultSrc: ["'self'"],
           styleSrc: ["'self'", "'unsafe-inline'"],
           scriptSrc: ["'self'"],
-          imgSrc: ["'self'", "data:", "https:"],
+          imgSrc: ["'self'", "data:"],
           connectSrc: ["'self'"],
           fontSrc: ["'self'"],
           objectSrc: ["'none'"],
@@ -128,7 +128,7 @@ class Application {
    */
   initializeRoutes() {
     // 健康检查端点（在API路由之前）
-    this.app.get('/health', (req, res) => {
+    this.app.get('/', (req, res) => {
       res.json({
         success: true,
         message: 'Server is healthy',
@@ -139,21 +139,8 @@ class Application {
         environment: config.get('server.nodeEnv')
       });
     });
-
     // API路由
     this.app.use('/api', apiRoutes);
-
-    // 根路径
-    this.app.get('/', (req, res) => {
-      res.json({
-        success: true,
-        message: 'Express API Server',
-        version: '1.0.0',
-        timestamp: new Date().toISOString(),
-        documentation: '/api',
-        health: '/health'
-      });
-    });
   }
 
   /**
@@ -161,7 +148,7 @@ class Application {
    */
   initializeErrorHandling() {
     // 404处理
-    this.app.use('*', notFoundHandler);
+    this.app.use('*', notFoundHandler);  
 
     // 全局错误处理
     this.app.use(errorHandler);

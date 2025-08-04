@@ -70,9 +70,9 @@ const validateRegister = [
     
   body('password')
     .isLength({ min: 8, max: 128 })
-    .withMessage('密码长度必须在8-128个字符之间'),
-    // .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
-    // .withMessage('密码必须包含至少一个大写字母、一个小写字母、一个数字和一个特殊字符'),
+    .withMessage('密码长度必须在8-128个字符之间')
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
+    .withMessage('密码必须包含至少一个大写字母、一个小写字母、一个数字和一个特殊字符'),
     
   body('confirmPassword')
     .custom((value, { req }) => {

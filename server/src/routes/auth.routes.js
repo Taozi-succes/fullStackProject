@@ -5,7 +5,6 @@
 const express = require('express');
 const rateLimit = require('express-rate-limit');
 const UserController = require('../modules/user/controllers/user.controller');
-const CaptchaController = require('../modules/captcha/controllers/captcha.controller');
 const { authenticateToken } = require('../shared/helpers');
 const {
   validateLogin,
@@ -17,7 +16,6 @@ const config = require('../core/config');
 
 const router = express.Router();
 const userController = new UserController();
-const captchaController = new CaptchaController();
 
 // 登录限流配置
 const loginLimiter = rateLimit({
@@ -119,7 +117,6 @@ router.get('/check-email',
  */
 router.post('/register', 
   registerLimiter,
-  validateRegister,
   (req, res) => userController.register(req, res)
 );
 
@@ -190,15 +187,6 @@ router.post('/verify-token',
   }
 );
 
-/**
- * @route   GET /api/auth/captcha
- * @desc    生成登录验证码
- * @access  Public
- */
-router.get('/captcha', 
-  apiLimiter,
-  (req, res) => captchaController.generateCaptcha(req, res)
-);
 
 /**
  * @route   GET /api/auth/status

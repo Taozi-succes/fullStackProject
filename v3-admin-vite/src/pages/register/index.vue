@@ -2,11 +2,11 @@
 import type { FormRules } from "element-plus"
 import type { RegisterRequestData } from "./apis/type"
 import ThemeSwitch from "@@/components/ThemeSwitch/index.vue"
-import { Key, Loading, Lock, Picture, User, Message } from "@element-plus/icons-vue"
-import { useSettingsStore } from "@/pinia/stores/settings"
-import { getCaptchaApi, registerApi, checkUsernameApi, checkEmailApi } from "./apis"
+import { Key, Loading, Lock, Message, Picture, User } from "@element-plus/icons-vue"
 import Owl from "@/pages/login/components/Owl.vue"
 import { useFocus } from "@/pages/login/composables/useFocus"
+import { useSettingsStore } from "@/pinia/stores/settings"
+import { checkEmailApi, checkUsernameApi, getCaptchaApi, registerApi } from "./apis"
 
 const router = useRouter()
 
@@ -37,7 +37,7 @@ const registerFormData: RegisterRequestData = reactive({
 })
 
 /** 自定义验证器：确认密码 */
-const validateConfirmPassword = (rule: any, value: string, callback: any) => {
+function validateConfirmPassword(rule: any, value: string, callback: any) {
   if (value === "") {
     callback(new Error("请再次输入密码"))
   } else if (value !== registerFormData.password) {
@@ -48,7 +48,7 @@ const validateConfirmPassword = (rule: any, value: string, callback: any) => {
 }
 
 /** 自定义验证器：用户名唯一性 */
-const validateUsername = async (rule: any, value: string, callback: any) => {
+async function validateUsername(rule: any, value: string, callback: any) {
   if (!value) {
     callback(new Error("请输入用户名"))
     return
@@ -57,11 +57,11 @@ const validateUsername = async (rule: any, value: string, callback: any) => {
     callback(new Error("用户名长度在 3 到 20 个字符"))
     return
   }
-  if (!/^[a-zA-Z0-9_]+$/.test(value)) {
+  if (!/^\w+$/.test(value)) {
     callback(new Error("用户名只能包含字母、数字和下划线"))
     return
   }
-  
+
   try {
     const response = await checkUsernameApi(value)
     if (response.success && !response.data.available) {
@@ -75,17 +75,17 @@ const validateUsername = async (rule: any, value: string, callback: any) => {
 }
 
 /** 自定义验证器：邮箱唯一性 */
-const validateEmail = async (rule: any, value: string, callback: any) => {
+async function validateEmail(rule: any, value: string, callback: any) {
   if (!value) {
     callback(new Error("请输入邮箱"))
     return
   }
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  const emailRegex = /^[^\s@]+@[^\s@][^\s.@]*\.[^\s@]+$/
   if (!emailRegex.test(value)) {
     callback(new Error("请输入有效的邮箱地址"))
     return
   }
-  
+
   try {
     const response = await checkEmailApi(value)
     if (response.success && !response.data.available) {
@@ -106,10 +106,11 @@ const registerFormRules: FormRules = {
   email: [
     { validator: validateEmail, trigger: "blur" }
   ],
-  password: [
+  password: [ 
     { required: true, message: "请输入密码", trigger: "blur" },
-    { min: 8, max: 16, message: "长度在 8 到 16 个字符", trigger: "blur" },
-    { pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{8,}$/, message: "密码必须包含大小写字母和数字", trigger: "blur" }
+    { min: 3, max: 16, message: "长度在 3到 16 个字符", trigger: "blur" },
+    { pattern: /^(?=.*[a-z])(?=.*\d)[a-z\d@$!%*?&]{3,}$/i, message: "密码必须包含大小写字母和数字", trigger: "blur" }
+    // { pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{8,}$/, message: "密码必须包含大小写字母和数字", trigger: "blur" }
   ],
   confirmPassword: [
     { validator: validateConfirmPassword, trigger: "blur" }
@@ -118,15 +119,15 @@ const registerFormRules: FormRules = {
     { required: true, message: "请输入验证码", trigger: "blur" }
   ],
   agreeTerms: [
-    { 
+    {
       validator: (rule: any, value: boolean, callback: any) => {
         if (!value) {
           callback(new Error("请同意服务条款和隐私政策"))
         } else {
           callback()
         }
-      }, 
-      trigger: "change" 
+      },
+      trigger: "change"
     }
   ]
 }
@@ -161,7 +162,7 @@ function handleRegister() {
         registerFormData.captchaCode = ""
       }
     }).catch((error) => {
-      console.error('注册失败:', error)
+      console.error("注册失败:", error)
       ElMessage.error("注册失败，请稍后重试")
       createCode()
       registerFormData.captchaCode = ""
@@ -206,12 +207,12 @@ function showTermsDialog() {
       <p>5. 用户使用本服务即表示同意遵守相关法律法规。</p>
       <p>6. 本条款的解释权归本平台所有。</p>
     </div>`,
-    '服务条款',
+    "服务条款",
     {
-      confirmButtonText: '我已了解',
+      confirmButtonText: "我已了解",
       dangerouslyUseHTMLString: true,
       customStyle: {
-        width: '500px'
+        width: "500px"
       }
     }
   )
@@ -229,12 +230,12 @@ function showPrivacyDialog() {
       <p>5. 您有权查询、更正或删除您的个人信息。</p>
       <p>6. 如有隐私相关问题，请联系我们的客服。</p>
     </div>`,
-    '隐私政策',
+    "隐私政策",
     {
-      confirmButtonText: '我已了解',
+      confirmButtonText: "我已了解",
       dangerouslyUseHTMLString: true,
       customStyle: {
-        width: '500px'
+        width: "500px"
       }
     }
   )
@@ -336,9 +337,13 @@ createCode()
           <el-form-item prop="agreeTerms">
             <el-checkbox v-model="registerFormData.agreeTerms" size="large">
               我已阅读并同意
-              <el-link type="primary" @click="showTermsDialog">《服务条款》</el-link>
+              <el-link type="primary" @click="showTermsDialog">
+                《服务条款》
+              </el-link>
               和
-              <el-link type="primary" @click="showPrivacyDialog">《隐私政策》</el-link>
+              <el-link type="primary" @click="showPrivacyDialog">
+                《隐私政策》
+              </el-link>
             </el-checkbox>
           </el-form-item>
           <el-button :loading="loading" type="primary" size="large" @click.prevent="handleRegister">
@@ -346,7 +351,9 @@ createCode()
           </el-button>
           <div class="login-link">
             <span>已有账号？</span>
-            <el-link type="primary" @click="goToLogin">立即登录</el-link>
+            <el-link type="primary" @click="goToLogin">
+              立即登录
+            </el-link>
           </div>
         </el-form>
       </div>

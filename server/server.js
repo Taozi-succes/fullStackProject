@@ -15,9 +15,7 @@ async function bootstrap() {
   try {
     // 显示启动信息
     logger.info('🚀 正在启动Express应用...');
-    console.log('Config object:', config);
-    console.log('Config server:', config.server);
-    logger.info(`📦 环境: ${config.server?.nodeEnv || 'unknown'}`);
+    logger.info(`📦 环境: ${config.get('server.nodeEnv')}`);
     logger.info(`🔧 Node.js版本: ${process.version}`);
     logger.info(`💾 内存使用: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB`);
     

@@ -219,7 +219,7 @@ export const dynamicRoutes: RouteRecordRaw[] = [
       title: "权限演示",
       elIcon: "Lock",
       // 可以在根路由中设置角色
-      roles: ["admin", "editor", "user"],
+      roles: ["admin", "editor"],
       alwaysShow: true
     },
     children: [
@@ -243,32 +243,6 @@ export const dynamicRoutes: RouteRecordRaw[] = [
           roles: undefined
         }
       }
-    ]
-  },
-  {
-    path: "/norole",
-    component: Layouts,
-    redirect: "/norole/page-level",
-    name: "Porole",
-    meta: {
-      title: "普通用户演示",
-      elIcon: "Lock",
-      // 可以在根路由中设置角色
-      roles: ["user"],
-      alwaysShow: true
-    },
-    children: [
-      {
-        path: "page-level",
-        component: () => import("@/pages/demo/norole/page-level.vue"),
-        name: "PermissionPageLevel",
-        meta: {
-          title: "页面级",
-          // 或者在子路由中设置角色
-          roles: ["user"]
-        }
-      }
-
     ]
   }
 ]

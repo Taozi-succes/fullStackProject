@@ -15,7 +15,7 @@ class Logger {
     };
     
     this.currentLevel = process.env.NODE_ENV === 'production' ? this.levels.INFO : this.levels.DEBUG;
-    this.logDir = path.join(process.cwd(), 'logs');
+    this.logDir = path.join(process.cwd(), 'logs'); // 日志目录路径  process.cwd() 当前工作目录，即项目根目录
     
     // 确保日志目录存在
     this.ensureLogDirectory();
@@ -34,7 +34,15 @@ class Logger {
    * 格式化日志消息
    */
   formatMessage(level, message, meta = {}) {
-    const timestamp = new Date().toISOString();
+    // 使用本地时间而不是UTC时间
+    const now = new Date();
+    const timestamp = now.getFullYear() + '-' + 
+      String(now.getMonth() + 1).padStart(2, '0') + '-' + 
+      String(now.getDate()).padStart(2, '0') + 'T' + 
+      String(now.getHours()).padStart(2, '0') + ':' + 
+      String(now.getMinutes()).padStart(2, '0') + ':' + 
+      String(now.getSeconds()).padStart(2, '0') + '.' + 
+      String(now.getMilliseconds()).padStart(3, '0') + '+08:00';
     const metaStr = Object.keys(meta).length > 0 ? ` ${JSON.stringify(meta)}` : '';
     return `[${timestamp}] [${level}] ${message}${metaStr}`;
   }
@@ -42,17 +50,25 @@ class Logger {
   /**
    * 写入日志文件
    */
+  // 在 writeToFile 方法中，修改文件路径
   writeToFile(level, formattedMessage) {
     const date = new Date().toISOString().split('T')[0];
     const filename = `${date}.log`;
-    const filepath = path.join(this.logDir, filename);
+    // 修改为 app 子目录
+    const filepath = path.join(this.logDir, 'app', filename);
+    
+    // 确保 app 目录存在
+    const appLogDir = path.join(this.logDir, 'app');
+    if (!fs.existsSync(appLogDir)) {
+      fs.mkdirSync(appLogDir, { recursive: true });
+    }
     
     fs.appendFileSync(filepath, formattedMessage + '\n');
     
     // 错误日志单独记录
     if (level === 'ERROR') {
       const errorFilename = `${date}-error.log`;
-      const errorFilepath = path.join(this.logDir, errorFilename);
+      const errorFilepath = path.join(this.logDir, 'app', errorFilename);
       fs.appendFileSync(errorFilepath, formattedMessage + '\n');
     }
   }

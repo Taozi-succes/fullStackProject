@@ -138,7 +138,9 @@ class ConfigService {
    * 获取配置值
    */
   get(path) {
-    return path.split('.').reduce((obj, key) => obj && obj[key], this.config);
+    return path.split('.').reduce((obj, key) => obj && obj[key], this.config);   // 这里使用了reduce方法来获取嵌套对象的值，例如config.server.port
+    // 例如：this.get('database.url') 会返回 'mysql://root:1234@localhost:3306/express_demo'
+    // 例如：this.get('jwt.secret') 会返回 'your-super-secret-jwt-key-change-in-production'
   }
 
   /**

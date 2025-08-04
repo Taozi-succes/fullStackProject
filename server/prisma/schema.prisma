@@ -31,5 +31,5 @@ model User {
 enum UserStatus {
   ACTIVE
   INACTIVE
-  BANNED
+  DELETED
 }

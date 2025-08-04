@@ -1,140 +1,286 @@
 <script lang="ts" setup>
-import type { CreateOrUpdateTableRequestData, TableData } from "@@/apis/tables/type"
-import type { FormRules } from "element-plus"
-import { createTableDataApi, deleteTableDataApi, getTableDataApi, updateTableDataApi } from "@@/apis/tables"
+import type { FormInstance, FormRules } from "element-plus"
+import type { AdminUpdateUserRequestData, UserData, UserListRequestData } from "./apis/type"
 import { usePagination } from "@@/composables/usePagination"
-import { CirclePlus, Delete, Download, Refresh, RefreshRight, Search } from "@element-plus/icons-vue"
-import { cloneDeep } from "lodash-es"
+import { Delete, Download, Edit, Refresh, RefreshRight, Search } from "@element-plus/icons-vue"
+import { useUserStore } from "@/pinia/stores/user"
+import { adminUpdateUserApi, deleteUserApi, getUserListApi } from "./apis"
 
 defineOptions({
-  // 命名当前组件
-  name: "ElementPlus"
+  name: "UserManagement"
 })
 
+const userStore = useUserStore()
 const loading = ref<boolean>(false)
 
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
 
-// #region 增
-const DEFAULT_FORM_DATA: CreateOrUpdateTableRequestData = {
-  id: undefined,
-  username: "",
-  password: ""
-}
-
-const dialogVisible = ref<boolean>(false)
-
-const formRef = useTemplateRef("formRef")
-
-const formData = ref<CreateOrUpdateTableRequestData>(cloneDeep(DEFAULT_FORM_DATA))
-
-const formRules: FormRules<CreateOrUpdateTableRequestData> = {
-  username: [{ required: true, trigger: "blur", message: "请输入用户名" }],
-  password: [{ required: true, trigger: "blur", message: "请输入密码" }]
-}
-
-function handleCreateOrUpdate() {
-  formRef.value?.validate((valid) => {
-    if (!valid) {
-      ElMessage.error("表单校验不通过")
-      return
-    }
-    loading.value = true
-    const api = formData.value.id === undefined ? createTableDataApi : updateTableDataApi
-    api(formData.value).then(() => {
-      ElMessage.success("操作成功")
-      dialogVisible.value = false
-      getTableData()
-    }).finally(() => {
-      loading.value = false
-    })
-  })
-}
-
-function resetForm() {
-  formRef.value?.clearValidate()
-  formData.value = cloneDeep(DEFAULT_FORM_DATA)
-}
-// #endregion
-
-// #region 删
-function handleDelete(row: TableData) {
-  ElMessageBox.confirm(`正在删除用户：${row.username}，确认删除？`, "提示", {
-    confirmButtonText: "确定",
-    cancelButtonText: "取消",
-    type: "warning"
-  }).then(() => {
-    deleteTableDataApi(row.id).then(() => {
-      ElMessage.success("删除成功")
-      getTableData()
-    })
-  })
-}
-// #endregion
-
-// #region 改
-function handleUpdate(row: TableData) {
-  dialogVisible.value = true
-  formData.value = cloneDeep(row)
-}
-// #endregion
-
-// #region 查
-const tableData = ref<TableData[]>([])
-
+// #region 查询用户列表
+const tableData = ref<UserData[]>([])
 const searchFormRef = useTemplateRef("searchFormRef")
 
 const searchData = reactive({
-  username: "",
-  phone: ""
+  search: ""
 })
 
-function getTableData() {
+/** 获取用户列表 */
+function getUserList() {
   loading.value = true
-  getTableDataApi({
-    currentPage: paginationData.currentPage,
-    size: paginationData.pageSize,
-    username: searchData.username,
-    phone: searchData.phone
-  }).then(({ data }) => {
-    paginationData.total = data.total
-    tableData.value = data.list
-  }).catch(() => {
-    tableData.value = []
-  }).finally(() => {
-    loading.value = false
-  })
+  const params: UserListRequestData = {
+    page: paginationData.currentPage,
+    limit: paginationData.pageSize,
+    search: searchData.search
+  }
+
+  getUserListApi(params)
+    .then((response) => {
+      if (response.success && response.data) {
+        tableData.value = response.data.users
+        paginationData.total = response.data.pagination.total
+      } else {
+        tableData.value = []
+      }
+    })
+    .finally(() => {
+      loading.value = false
+    })
 }
 
+/** 搜索用户 */
 function handleSearch() {
-  paginationData.currentPage === 1 ? getTableData() : (paginationData.currentPage = 1)
+  paginationData.currentPage === 1 ? getUserList() : (paginationData.currentPage = 1)
 }
 
+/** 重置搜索 */
 function resetSearch() {
   searchFormRef.value?.resetFields()
   handleSearch()
 }
 // #endregion
 
+// #region 编辑用户
+const editDialogVisible = ref(false)
+const editFormRef = useTemplateRef("editFormRef")
+const editLoading = ref(false)
+
+const editFormData = reactive<AdminUpdateUserRequestData>({
+  username: "",
+  email: "",
+  avatar: "",
+  roles: [],
+  status: ""
+})
+
+const currentEditUserId = ref<number>(0)
+
+// 表单验证规则
+const editFormRules: FormRules = {
+  username: [
+    { required: true, message: "请输入用户名", trigger: "blur" },
+    { min: 3, max: 20, message: "用户名长度在 3 到 20 个字符", trigger: "blur" },
+    { pattern: /^\w+$/, message: "用户名只能包含字母、数字和下划线", trigger: "blur" }
+  ],
+  email: [
+    { required: true, message: "请输入邮箱地址", trigger: "blur" },
+    { type: "email", message: "请输入正确的邮箱地址", trigger: "blur" }
+  ],
+  roles: [
+    { required: true, message: "请选择用户角色", trigger: "change" }
+  ],
+  status: [
+    { required: true, message: "请选择用户状态", trigger: "change" }
+  ]
+}
+
+// 角色选项
+const roleOptions = [
+  { label: "普通用户", value: "user" },
+  { label: "管理员", value: "admin" },
+  { label: "版主", value: "moderator" }
+]
+
+// 状态选项
+const statusOptions = [
+  { label: "正常", value: "ACTIVE" },
+  { label: "禁用", value: "INACTIVE" },
+  { label: "删除", value: "DELETED" }
+]
+
+/** 打开编辑对话框 */
+function handleEdit(row: UserData) {
+  // 检查当前用户是否为管理员
+  if (!userStore.roles.includes("admin")) {
+    ElMessage.error("权限不足，只有管理员可以编辑用户")
+    return
+  }
+
+  currentEditUserId.value = row.id
+  editFormData.username = row.username
+  editFormData.email = row.email
+  editFormData.avatar = row.avatar || ""
+  editFormData.roles = [...row.roles]
+  editFormData.status = row.status
+  editDialogVisible.value = true
+}
+
+/** 确认编辑用户 */
+function confirmEdit() {
+  editFormRef.value?.validate((valid) => {
+    if (!valid) return
+
+    // 防止管理员修改自己的角色和状态
+    if (currentEditUserId.value === userStore.userInfo?.id) {
+      const originalUser = tableData.value.find(user => user.id === currentEditUserId.value)
+      if (originalUser) {
+        if (JSON.stringify(editFormData.roles) !== JSON.stringify(originalUser.roles)) {
+          ElMessage.error("不能修改自己的角色")
+          return
+        }
+        if (editFormData.status !== originalUser.status) {
+          ElMessage.error("不能修改自己的状态")
+          return
+        }
+      }
+    }
+
+    editLoading.value = true
+    adminUpdateUserApi(currentEditUserId.value, editFormData)
+      .then((response) => {
+        if (response.success) {
+          ElMessage.success(response.message || "更新用户信息成功")
+          editDialogVisible.value = false
+          getUserList() // 重新获取用户列表
+        } else {
+          ElMessage.error(response.message || "更新用户信息失败")
+        }
+      })
+      .catch((error) => {
+        console.error("更新用户信息失败:", error)
+        ElMessage.error("更新用户信息失败")
+      })
+      .finally(() => {
+        editLoading.value = false
+      })
+  })
+}
+
+/** 取消编辑 */
+function cancelEdit() {
+  editDialogVisible.value = false
+  editFormRef.value?.resetFields()
+}
+// #endregion
+
+// #region 删除用户
+/** 删除用户 */
+function handleDelete(row: UserData) {
+  // 检查当前用户是否为管理员
+  if (!userStore.roles.includes("admin")) {
+    ElMessage.error("权限不足，只有管理员可以删除用户")
+    return
+  }
+
+  // 防止删除自己
+  if (row.id === userStore.userInfo?.id) {
+    ElMessage.error("不能删除自己的账户")
+    return
+  }
+
+  ElMessageBox.confirm(
+    `确认删除用户：${row.username}？此操作不可恢复。`,
+    "删除用户",
+    {
+      confirmButtonText: "确定删除",
+      cancelButtonText: "取消",
+      type: "warning",
+      dangerouslyUseHTMLString: true
+    }
+  ).then(() => {
+    loading.value = true
+    deleteUserApi(row.id)
+      .then((response) => {
+        if (response.success) {
+          ElMessage.success(response.message || "删除用户成功")
+          getUserList() // 重新获取用户列表
+        } else {
+          ElMessage.error(response.message || "删除用户失败")
+        }
+      })
+      .catch((error) => {
+        console.error("删除用户失败:", error)
+        ElMessage.error("删除用户失败")
+      })
+      .finally(() => {
+        loading.value = false
+      })
+  })
+}
+// #endregion
+
+/** 格式化角色显示 */
+function formatRoles(roles: string[]): string {
+  return roles.join(", ")
+}
+
+/** 格式化状态显示 */
+function getStatusType(status: string): string {
+  switch (status) {
+    case "ACTIVE":
+      return "success"
+    case "INACTIVE":
+      return "warning"
+    case "BANNED":
+      return "danger"
+    default:
+      return "info"
+  }
+}
+
+/** 格式化状态文本 */
+function getStatusText(status: string): string {
+  switch (status) {
+    case "ACTIVE":
+      return "正常"
+    case "INACTIVE":
+      return "禁用"
+    case "BANNED":
+      return "封禁"
+    case "DELETED":
+      return "已删除"
+    default:
+      return "未知"
+  }
+}
+
+/** 格式化时间 */
+function formatTime(time: string): string {
+  return new Date(time).toLocaleString("zh-CN")
+}
+
 // 监听分页参数的变化
-watch([() => paginationData.currentPage, () => paginationData.pageSize], getTableData, { immediate: true })
+watch([() => paginationData.currentPage, () => paginationData.pageSize], getUserList, { immediate: true })
 </script>
 
 <template>
   <div class="app-container">
+    <img src="https://httpbin.org/image/png" alt="测试" style="width:100px;">
     <el-alert
-      title="数据来源"
-      type="success"
-      description="由 Apifox 提供在线 Mock，数据不具备真实性，仅供简单的 CRUD 操作演示"
+      title="用户管理"
+      type="info"
+      description="管理系统中的所有用户，包括查看、编辑和删除用户（仅管理员可操作）"
       show-icon
     />
+
+    <!-- 搜索区域 -->
     <el-card v-loading="loading" shadow="never" class="search-wrapper">
       <el-form ref="searchFormRef" :inline="true" :model="searchData">
-        <el-form-item prop="username" label="用户名">
-          <el-input v-model="searchData.username" placeholder="请输入" />
-        </el-form-item>
-        <el-form-item prop="phone" label="手机号">
-          <el-input v-model="searchData.phone" placeholder="请输入" />
+        <el-form-item prop="search" label="搜索">
+          <el-input
+            v-model="searchData.search"
+            placeholder="请输入用户名或邮箱"
+            clearable
+            style="width: 240px"
+          />
         </el-form-item>
         <el-form-item>
           <el-button type="primary" :icon="Search" @click="handleSearch">
@@ -146,64 +292,100 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
         </el-form-item>
       </el-form>
     </el-card>
+
+    <!-- 用户列表 -->
     <el-card v-loading="loading" shadow="never">
       <div class="toolbar-wrapper">
         <div>
-          <el-button type="primary" :icon="CirclePlus" @click="dialogVisible = true">
-            新增用户
-          </el-button>
-          <el-button type="danger" :icon="Delete">
-            批量删除
-          </el-button>
+          <el-tag type="info">
+            总用户数：{{ paginationData.total }}
+          </el-tag>
         </div>
         <div>
-          <el-tooltip content="下载">
+          <el-tooltip content="导出用户列表">
             <el-button type="primary" :icon="Download" circle />
           </el-tooltip>
           <el-tooltip content="刷新当前页">
-            <el-button type="primary" :icon="RefreshRight" circle @click="getTableData" />
+            <el-button type="primary" :icon="RefreshRight" circle @click="getUserList" />
           </el-tooltip>
         </div>
       </div>
+
       <div class="table-wrapper">
-        <el-table :data="tableData">
-          <el-table-column type="selection" width="50" align="center" />
-          <el-table-column prop="username" label="用户名" align="center" />
-          <el-table-column prop="roles" label="角色" align="center">
+        <el-table :data="tableData" stripe>
+          <el-table-column prop="id" label="ID" width="80" align="center" />
+          <el-table-column prop="username" label="用户名" align="center" min-width="120" />
+          <el-table-column prop="email" label="邮箱" align="center" min-width="180" />
+          <el-table-column prop="roles" label="角色" align="center" min-width="120">
             <template #default="scope">
-              <el-tag v-if="scope.row.roles === 'admin'" type="primary" effect="plain" disable-transitions>
-                admin
-              </el-tag>
-              <el-tag v-else type="warning" effect="plain" disable-transitions>
-                {{ scope.row.roles }}
+              <el-tag
+                v-for="role in scope.row.roles"
+                :key="role"
+                :type="role === 'admin' ? 'danger' : 'primary'"
+                effect="plain"
+                size="small"
+                style="margin-right: 4px"
+              >
+                {{ role }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="phone" label="手机号" align="center" />
-          <el-table-column prop="email" label="邮箱" align="center" />
-          <el-table-column prop="status" label="状态" align="center">
+          <el-table-column prop="status" label="状态" align="center" width="100">
             <template #default="scope">
-              <el-tag v-if="scope.row.status" type="success" effect="plain" disable-transitions>
-                启用
-              </el-tag>
-              <el-tag v-else type="danger" effect="plain" disable-transitions>
-                禁用
+              <el-tag
+                :type="getStatusType(scope.row.status)"
+                effect="plain"
+                disable-transitions
+              >
+                {{ getStatusText(scope.row.status) }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="createTime" label="创建时间" align="center" />
-          <el-table-column fixed="right" label="操作" width="150" align="center">
+          <el-table-column prop="createdAt" label="创建时间" align="center" min-width="160">
             <template #default="scope">
-              <el-button type="primary" text bg size="small" @click="handleUpdate(scope.row)">
-                修改
+              {{ formatTime(scope.row.createdAt) }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="lastLoginAt" label="最后登录" align="center" min-width="160">
+            <template #default="scope">
+              {{ scope.row.lastLoginAt ? formatTime(scope.row.lastLoginAt) : '从未登录' }}
+            </template>
+          </el-table-column>
+          <el-table-column
+            fixed="right"
+            label="操作"
+            width="180"
+            align="center"
+            v-if="userStore.roles.includes('admin')"
+          >
+            <template #default="scope">
+              <el-button
+                type="primary"
+                text
+                bg
+                size="small"
+                :icon="Edit"
+                @click="handleEdit(scope.row)"
+              >
+                编辑
               </el-button>
-              <el-button type="danger" text bg size="small" @click="handleDelete(scope.row)">
+              <el-button
+                type="danger"
+                text
+                bg
+                size="small"
+                :icon="Delete"
+                @click="handleDelete(scope.row)"
+                :disabled="scope.row.id === userStore.userInfo?.id"
+              >
                 删除
               </el-button>
             </template>
           </el-table-column>
         </el-table>
       </div>
+
+      <!-- 分页 -->
       <div class="pager-wrapper">
         <el-pagination
           background
@@ -217,28 +399,93 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
         />
       </div>
     </el-card>
-    <!-- 新增/修改 -->
+
+    <!-- 编辑用户对话框 -->
     <el-dialog
-      v-model="dialogVisible"
-      :title="formData.id === undefined ? '新增用户' : '修改用户'"
-      width="30%"
-      @closed="resetForm"
+      v-model="editDialogVisible"
+      title="编辑用户信息"
+      width="600px"
+      :close-on-click-modal="false"
     >
-      <el-form ref="formRef" :model="formData" :rules="formRules" label-width="100px" label-position="left">
-        <el-form-item prop="username" label="用户名">
-          <el-input v-model="formData.username" placeholder="请输入" />
+      <el-form
+        ref="editFormRef"
+        :model="editFormData"
+        :rules="editFormRules"
+        label-width="80px"
+        label-position="left"
+      >
+        <el-form-item label="用户名" prop="username">
+          <el-input
+            v-model="editFormData.username"
+            placeholder="请输入用户名"
+            clearable
+          />
         </el-form-item>
-        <el-form-item v-if="formData.id === undefined" prop="password" label="密码">
-          <el-input v-model="formData.password" placeholder="请输入" />
+        <el-form-item label="邮箱" prop="email">
+          <el-input
+            v-model="editFormData.email"
+            placeholder="请输入邮箱地址"
+            clearable
+          />
+        </el-form-item>
+        <el-form-item label="头像" prop="avatar">
+          <el-input
+            v-model="editFormData.avatar"
+            placeholder="请输入头像URL（可选）"
+            clearable
+          />
+        </el-form-item>
+        <el-form-item label="角色" prop="roles">
+          <el-select
+            v-model="editFormData.roles"
+            multiple
+            placeholder="请选择用户角色"
+            style="width: 100%"
+            :disabled="currentEditUserId === userStore.userInfo?.id"
+          >
+            <el-option
+              v-for="option in roleOptions"
+              :key="option.value"
+              :label="option.label"
+              :value="option.value"
+            />
+          </el-select>
+          <div v-if="currentEditUserId === userStore.userInfo?.id" class="form-tip">
+            <el-text type="warning" size="small">
+              不能修改自己的角色
+            </el-text>
+          </div>
+        </el-form-item>
+        <el-form-item label="状态" prop="status">
+          <el-select
+            v-model="editFormData.status"
+            placeholder="请选择用户状态"
+            style="width: 100%"
+            :disabled="currentEditUserId === userStore.userInfo?.id"
+          >
+            <el-option
+              v-for="option in statusOptions"
+              :key="option.value"
+              :label="option.label"
+              :value="option.value"
+            />
+          </el-select>
+          <div v-if="currentEditUserId === userStore.userInfo?.id" class="form-tip">
+            <el-text type="warning" size="small">
+              不能修改自己的状态
+            </el-text>
+          </div>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="dialogVisible = false">
-          取消
-        </el-button>
-        <el-button type="primary" :loading="loading" @click="handleCreateOrUpdate">
-          确认
-        </el-button>
+        <div class="dialog-footer">
+          <el-button @click="cancelEdit">
+            取消
+          </el-button>
+          <el-button type="primary" :loading="editLoading" @click="confirmEdit">
+            确定
+          </el-button>
+        </div>
       </template>
     </el-dialog>
   </div>
@@ -259,6 +506,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
 .toolbar-wrapper {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   margin-bottom: 20px;
 }
 
@@ -269,5 +517,13 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
 .pager-wrapper {
   display: flex;
   justify-content: flex-end;
+}
+
+.form-tip {
+  margin-top: 4px;
+}
+
+.dialog-footer {
+  text-align: right;
 }
 </style>

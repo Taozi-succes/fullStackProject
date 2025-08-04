@@ -43,7 +43,6 @@ function createInstance() {
         }
         // 其他业务错误
         ElMessage.error(apiData.message || "请求失败")
-        return Promise.reject(new Error(apiData.message || "请求失败"))
       }
 
       // // 兼容旧的code字段格式
@@ -56,7 +55,6 @@ function createInstance() {
             return logout()
           default:
             ElMessage.error(apiData.message || "Error")
-            return Promise.reject(new Error("Error"))
         }
       }
 
@@ -69,7 +67,7 @@ function createInstance() {
       const message = get(error, "response.data.message")
       switch (status) {
         case 400:
-          error.message = "请求错误"
+          error.message = message || "请求错误"
           break
         case 401:
           // Token 过期时
@@ -80,16 +78,16 @@ function createInstance() {
           error.message = message || "拒绝访问"
           break
         case 404:
-          error.message = "请求地址出错"
+          error.message = message || "请求地址出错"
           break
         case 408:
-          error.message = "请求超时"
+          error.message = message || "请求超时"
           break
         case 500:
-          error.message = "服务器内部错误"
+          error.message = message || "服务器内部错误"
           break
         case 501:
-          error.message = "服务未实现"
+          error.message = message || "服务未实现"
           break
         case 502:
           error.message = "网关错误"
@@ -105,7 +103,7 @@ function createInstance() {
           break
       }
       ElMessage.error(error.message)
-      return Promise.reject(error)
+      return error.response
     }
   )
   return instance
