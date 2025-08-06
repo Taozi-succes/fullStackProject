@@ -17,7 +17,7 @@ module.exports = {
       NODE_ENV: 'development',
       PORT: 3000
     },
-    env_development_cluster: {       // 开发集群环境变量
+    env_development: {       // 开发集群环境变量
       NODE_ENV: 'development',
       PORT: 3000
     },
