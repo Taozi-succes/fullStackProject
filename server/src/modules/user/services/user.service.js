@@ -430,7 +430,7 @@ class UserService {
                         id: historyId,
                         userId: userId,
                         isCurrent: false
-                    }
+                    },
                 });
                 
                 if (!historyRecord) {
@@ -515,7 +515,6 @@ class UserService {
             };
         }
     }
-
     /**
      * 清理孤儿头像文件
      * @returns {Object} 清理结果
@@ -1061,7 +1060,6 @@ class UserService {
                 this.prisma.user.count({ where }),
             ]);
 
-            console.log("用户列表users:===", users);
             return {
                 users: users.map((user) => ({
                     ...user,

@@ -11,44 +11,80 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// 头像历史模型
+/// 用户信息表
+/// 存储系统中所有用户的基本信息和状态
+model User {
+  /// 用户唯一标识符
+  id          Int      @id @default(autoincrement())
+  
+  /// 用户邮箱地址，用于登录和通知
+  email       String   @unique
+  
+  /// 用户名，用于登录和显示
+  username    String   @unique
+  
+  /// 加密后的用户密码
+  password    String
+  
+  /// 用户头像URL，可为空
+  avatar      String?
+  
+  /// 用户角色列表，JSON格式存储
+  roles       Json @default("[\"user\"]")
+  
+  /// 用户账户状态
+  status      UserStatus @default(ACTIVE)
+  
+  /// 最后登录时间
+  lastLoginAt DateTime?
+  
+  /// 记录创建时间
+  createdAt   DateTime @default(now())
+  
+  /// 记录更新时间
+  updatedAt   DateTime @updatedAt
+  
+  /// 用户的头像历史记录
+  avatarHistory AvatarHistory[]
+
+  @@map("users")
+}
+
+/// 头像历史记录表
+/// 用于存储用户的头像变更历史，支持头像回滚功能
 model AvatarHistory {
+  /// 历史记录唯一标识符
   id        Int      @id @default(autoincrement())
+  
+  /// 关联的用户ID
   userId    Int
+  
+  /// 头像文件URL
   avatarUrl String
+  
+  /// 是否为当前使用的头像
   isCurrent Boolean  @default(false)
+  
+  /// 记录创建时间
   createdAt DateTime @default(now())
+  
+  /// 记录更新时间
   updatedAt DateTime @updatedAt
   
-  // 关联用户
+  /// 关联到用户表，级联删除
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   @@map("avatar_history")
   @@index([userId, createdAt])
 }
 
-// 用户模型 - 添加关联
-model User {
-  id          Int      @id @default(autoincrement())
-  email       String   @unique
-  username    String   @unique
-  password    String
-  avatar      String?
-  roles       Json @default("[\"user\"]")
-  status      UserStatus @default(ACTIVE)
-  lastLoginAt DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  // 添加头像历史关联
-  avatarHistory AvatarHistory[]
-
-  @@map("users")
-}
-
-// 用户状态枚举
+/// 用户状态枚举
+/// 定义用户账户的各种状态
 enum UserStatus {
+  /// 活跃状态，可正常使用
   ACTIVE
+  /// 非活跃状态，暂时禁用
   INACTIVE
+  /// 已删除状态，软删除
   DELETED
 }
