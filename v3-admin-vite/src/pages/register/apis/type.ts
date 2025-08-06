@@ -1,32 +1,32 @@
 export interface RegisterRequestData {
   /** 用户名 */
-  username: string
+  username: string;
   /** 邮箱 */
-  email: string
+  email: string;
   /** 密码 */
-  password: string
+  password: string;
   /** 确认密码 */
-  confirmPassword: string
+  confirmPassword: string;
   /** 验证码ID */
-  captchaId: string
+  captchaId: string;
   /** 验证码 */
-  captchaCode: string
+  captchaCode: string;
+  /** 是否同意条款 */
+  agreeTerms: boolean;
 }
 
 export interface RegisterData {
   /** 用户信息 */
   user: {
     /** 用户ID */
-    id: number
+    id: number;
     /** 用户名 */
-    username: string
+    username: string;
     /** 邮箱 */
-    email: string
+    email: string;
     /** 头像 */
-    avatar?: string
-  }
-  /** 注册成功消息 */
-  message: string
+    avatar?: string;
+  };
 }
 
-export type RegisterResponseData = ApiResponseData<RegisterData>
+export type RegisterResponseData = ApiResponseData<RegisterData>;

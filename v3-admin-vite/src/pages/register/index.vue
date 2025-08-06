@@ -48,7 +48,7 @@ function validateConfirmPassword(rule: any, value: string, callback: any) {
 }
 
 /** 自定义验证器：用户名唯一性 */
-async function validateUsername(rule: any, value: string, callback: any) {
+function validateUsername(rule: any, value: string, callback: any) {
   if (!value) {
     callback(new Error("请输入用户名"))
     return
@@ -62,20 +62,19 @@ async function validateUsername(rule: any, value: string, callback: any) {
     return
   }
 
-  try {
-    const response = await checkUsernameApi(value)
+  checkUsernameApi(value).then(response => {
     if (response.success && !response.data.available) {
       callback(new Error("用户名已被占用"))
     } else {
       callback()
     }
-  } catch (error) {
+  }).catch(() => {
     callback()
-  }
+  })
 }
 
 /** 自定义验证器：邮箱唯一性 */
-async function validateEmail(rule: any, value: string, callback: any) {
+function validateEmail(rule: any, value: string, callback: any) {
   if (!value) {
     callback(new Error("请输入邮箱"))
     return
@@ -86,16 +85,15 @@ async function validateEmail(rule: any, value: string, callback: any) {
     return
   }
 
-  try {
-    const response = await checkEmailApi(value)
+  checkEmailApi(value).then(response => {
     if (response.success && !response.data.available) {
       callback(new Error("邮箱已被注册"))
     } else {
       callback()
     }
-  } catch (error) {
+  }).catch(() => {
     callback()
-  }
+  })
 }
 
 /** 注册表单校验规则 */
@@ -106,7 +104,7 @@ const registerFormRules: FormRules = {
   email: [
     { validator: validateEmail, trigger: "blur" }
   ],
-  password: [ 
+  password: [
     { required: true, message: "请输入密码", trigger: "blur" },
     { min: 3, max: 16, message: "长度在 3到 16 个字符", trigger: "blur" },
     { pattern: /^(?=.*[a-z])(?=.*\d)[a-z\d@$!%*?&]{3,}$/i, message: "密码必须包含大小写字母和数字", trigger: "blur" }

@@ -129,7 +129,7 @@ function confirmEdit() {
     if (!valid) return
 
     // 防止管理员修改自己的角色和状态
-    if (currentEditUserId.value === userStore.userInfo?.id) {
+    if (currentEditUserId.value === userStore.id) {
       const originalUser = tableData.value.find(user => user.id === currentEditUserId.value)
       if (originalUser) {
         if (JSON.stringify(editFormData.roles) !== JSON.stringify(originalUser.roles)) {
@@ -181,7 +181,7 @@ function handleDelete(row: UserData) {
   }
 
   // 防止删除自己
-  if (row.id === userStore.userInfo?.id) {
+  if (row.id === userStore.id) {
     ElMessage.error("不能删除自己的账户")
     return
   }
@@ -223,7 +223,7 @@ function formatRoles(roles: string[]): string {
 }
 
 /** 格式化状态显示 */
-function getStatusType(status: string): string {
+function getStatusType(status: string): "primary" | "success" | "warning" | "info" | "danger" {
   switch (status) {
     case "ACTIVE":
       return "success"
@@ -375,7 +375,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getUser
                 size="small"
                 :icon="Delete"
                 @click="handleDelete(scope.row)"
-                :disabled="scope.row.id === userStore.userInfo?.id"
+                :disabled="scope.row.id === userStore.id"
               >
                 删除
               </el-button>
@@ -440,7 +440,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getUser
             multiple
             placeholder="请选择用户角色"
             style="width: 100%"
-            :disabled="currentEditUserId === userStore.userInfo?.id"
+            :disabled="currentEditUserId === userStore.id"
           >
             <el-option
               v-for="option in roleOptions"
@@ -449,7 +449,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getUser
               :value="option.value"
             />
           </el-select>
-          <div v-if="currentEditUserId === userStore.userInfo?.id" class="form-tip">
+          <div v-if="currentEditUserId === userStore.id" class="form-tip">
             <el-text type="warning" size="small">
               不能修改自己的角色
             </el-text>
@@ -460,7 +460,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getUser
             v-model="editFormData.status"
             placeholder="请选择用户状态"
             style="width: 100%"
-            :disabled="currentEditUserId === userStore.userInfo?.id"
+            :disabled="currentEditUserId === userStore.id"
           >
             <el-option
               v-for="option in statusOptions"
@@ -469,7 +469,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getUser
               :value="option.value"
             />
           </el-select>
-          <div v-if="currentEditUserId === userStore.userInfo?.id" class="form-tip">
+          <div v-if="currentEditUserId === userStore.id" class="form-tip">
             <el-text type="warning" size="small">
               不能修改自己的状态
             </el-text>
