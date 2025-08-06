@@ -27,11 +27,15 @@ const {
   notFoundHandler
 } = require('./shared/helpers');
 
+// 在文件顶部添加导入
+const Scheduler = require('./core/scheduler');
+
 class Application {
   constructor() {
     this.app = express();
     this.server = null;
     this.isShuttingDown = false;
+    this.scheduler = new Scheduler(); // 添加这行
     
     this.initializeMiddlewares();
     this.initializeRoutes();
@@ -149,6 +153,9 @@ class Application {
 
       // 初始化Redis连接
       await this.initializeRedis();
+
+      // 启动定时任务调度器
+      this.scheduler.start();
 
       // 启动HTTP服务器
       const port = config.get('server.port');

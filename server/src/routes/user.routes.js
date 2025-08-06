@@ -411,4 +411,26 @@ router.delete('/:id',
   userController.deleteUser
 );
 
+/**
+ * @route   GET /api/user/avatar/history
+ * @desc    获取头像历史记录
+ * @access  Private
+ */
+router.get('/avatar/history', 
+  authenticateToken,
+  apiLimiter,
+  userController.getAvatarHistory
+);
+
+/**
+ * @route   PUT /api/user/avatar/switch/:historyId
+ * @desc    切换到历史头像
+ * @access  Private
+ */
+router.put('/avatar/switch/:historyId', 
+  authenticateToken,
+  apiLimiter,
+  userController.switchToHistoryAvatar
+);
+
 module.exports = router;

@@ -1,9 +1,9 @@
 <script lang="ts" setup>
 import type { FormInstance, FormRules, UploadProps } from "element-plus"
-import type { ChangePasswordRequestData, UpdateProfileRequestData } from "./apis/type"
-import { Camera, Edit, Lock, User } from "@element-plus/icons-vue"
+import type { AvatarHistoryItem, ChangePasswordRequestData, UpdateProfileRequestData } from "./apis/type"
+import { Camera, Check, Edit, Lock, User } from "@element-plus/icons-vue"
 import { useUserStore } from "@/pinia/stores/user"
-import { changePasswordApi, updateUserProfileApi, uploadAvatarApi } from "./apis"
+import { changePasswordApi, getAvatarHistoryApi, switchToHistoryAvatarApi, updateUserProfileApi, uploadAvatarApi } from "./apis"
 
 defineOptions({
   name: "UserProfile"
@@ -210,6 +210,44 @@ async function handlePasswordSubmit() {
     }
   })
 }
+
+// 头像历史相关状态
+const avatarHistory = ref<AvatarHistoryItem[]>([])
+const showAvatarHistory = ref(false)
+
+// 获取头像历史记录
+async function getAvatarHistory() {
+  try {
+    const response = await getAvatarHistoryApi()
+    if (response.success) {
+      avatarHistory.value = response.data.history
+    }
+  } catch (error) {
+    console.error("获取头像历史失败:", error)
+  }
+}
+
+// 切换到历史头像
+async function switchToHistoryAvatar(historyId: number) {
+  try {
+    const response = await switchToHistoryAvatarApi(historyId)
+    if (response.success) {
+      // 更新用户信息
+      userStore.setUserInfo(response.data)
+      ElMessage.success("头像切换成功")
+      showAvatarHistory.value = false
+    }
+  } catch (error) {
+    console.error("切换头像失败:", error)
+    ElMessage.error("切换头像失败")
+  }
+}
+
+// 显示头像历史
+async function handleShowAvatarHistory() {
+  await getAvatarHistory()
+  showAvatarHistory.value = true
+}
 </script>
 
 <template>
@@ -251,6 +289,16 @@ async function handlePasswordSubmit() {
                 {{ avatarLoading ? '上传中...' : '更换头像' }}
               </el-button>
             </el-upload>
+            <!-- 添加头像历史按钮 -->
+            <el-button
+              type="info"
+              plain
+              size="small"
+              @click="handleShowAvatarHistory"
+              class="history-btn"
+            >
+              头像历史
+            </el-button>
           </div>
         </div>
 
@@ -328,6 +376,7 @@ async function handlePasswordSubmit() {
       width="500px"
       :close-on-click-modal="false"
       @close="closePasswordDialog"
+      footer="false"
     >
       <el-form
         ref="passwordFormRef"
@@ -382,6 +431,63 @@ async function handlePasswordSubmit() {
         </div>
       </template>
     </el-dialog>
+
+    <!-- 头像历史对话框 -->
+    <el-dialog
+      v-model="showAvatarHistory"
+      title="头像历史"
+      width="500px"
+      :close-on-click-modal="false"
+    >
+      <div class="avatar-history-container">
+        <div class="current-avatar">
+          <h4>当前头像</h4>
+          <el-avatar
+            :size="80"
+            :src="userStore.avatar"
+            :icon="User"
+          />
+        </div>
+
+        <el-divider />
+
+        <div class="history-avatars">
+          <h4>历史头像</h4>
+          <div v-if="avatarHistory.length === 0" class="no-history">
+            <el-empty description="暂无历史头像" :image-size="60" />
+          </div>
+          <div v-else class="history-grid">
+            <div
+              v-for="item in avatarHistory"
+              :key="item.id"
+              class="history-item"
+              @click="switchToHistoryAvatar(item.id)"
+            >
+              <el-avatar
+                :size="60"
+                :src="item.avatarUrl"
+                :icon="User"
+                class="history-avatar"
+              />
+              <div class="history-info">
+                <span class="history-date">
+                  {{ new Date(item.createdAt).toLocaleDateString() }}
+                </span>
+              </div>
+              <div class="history-overlay">
+                <el-icon><Check /></el-icon>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <template #footer>
+        <el-button @click="showAvatarHistory = false">
+          关闭
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -429,6 +535,11 @@ async function handlePasswordSubmit() {
     .upload-btn {
       border-radius: 20px;
     }
+
+    .history-btn {
+      border-radius: 15px;
+      font-size: 12px;
+    }
   }
 }
 
@@ -447,6 +558,89 @@ async function handlePasswordSubmit() {
 }
 
 .dialog-footer {
-  text-align: right;
+  text-align: center;
+}
+
+.avatar-history-container {
+  .current-avatar {
+    text-align: center;
+
+    h4 {
+      margin-bottom: 16px;
+      color: var(--el-text-color-primary);
+    }
+  }
+
+  .history-avatars {
+    h4 {
+      margin-bottom: 16px;
+      color: var(--el-text-color-primary);
+    }
+
+    .no-history {
+      text-align: center;
+      padding: 20px;
+    }
+
+    .history-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      gap: 16px;
+    }
+
+    .history-item {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 12px;
+      border: 1px solid var(--el-border-color-light);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s;
+
+      &:hover {
+        border-color: var(--el-color-primary);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+        .history-overlay {
+          opacity: 1;
+        }
+      }
+
+      .history-avatar {
+        margin-bottom: 8px;
+      }
+
+      .history-info {
+        text-align: center;
+
+        .history-date {
+          font-size: 12px;
+          color: var(--el-text-color-secondary);
+        }
+      }
+
+      .history-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(64, 158, 255, 0.8);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.3s;
+
+        .el-icon {
+          color: white;
+          font-size: 20px;
+        }
+      }
+    }
+  }
 }
 </style>

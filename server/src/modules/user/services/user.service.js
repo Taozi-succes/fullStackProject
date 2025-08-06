@@ -256,6 +256,350 @@ class UserService {
     }
 
     /**
+     * 保存头像到历史记录并更新当前头像
+     * @param {number} userId - 用户ID
+     * @param {string} newAvatarUrl - 新头像URL
+     */
+    async updateAvatarWithHistory(userId, newAvatarUrl) {
+        try {
+            // 开始事务
+            const result = await this.prisma.$transaction(async (prisma) => {
+                // 1. 获取当前用户信息
+                const currentUser = await prisma.user.findUnique({
+                    where: { id: userId },
+                    select: { avatar: true }
+                });
+                
+                // 2. 如果用户有当前头像，检查是否需要保存到历史记录
+                if (currentUser.avatar) {
+                    // 检查该头像是否已经存在于历史记录中
+                    const existingHistory = await prisma.avatarHistory.findFirst({
+                        where: {
+                            userId: userId,
+                            avatarUrl: currentUser.avatar
+                        }
+                    });
+                    
+                    if (!existingHistory) {
+                        // 只有当头像不存在于历史记录中时才保存
+                        await prisma.avatarHistory.create({
+                            data: {
+                                userId: userId,
+                                avatarUrl: currentUser.avatar,
+                                isCurrent: false
+                            }
+                        });
+                    }
+                }
+                
+                // 3. 清理超过3个的历史记录（保留最新的3个）
+                const historyCount = await prisma.avatarHistory.count({
+                    where: { 
+                        userId: userId,
+                        isCurrent: false 
+                    }
+                });
+                
+                if (historyCount > 3) {
+                    // 获取最旧的记录
+                    const oldRecords = await prisma.avatarHistory.findMany({
+                        where: { 
+                            userId: userId,
+                            isCurrent: false 
+                        },
+                        orderBy: { createdAt: 'asc' },
+                        take: historyCount - 3
+                    });
+                    
+                    // 删除旧记录
+                    await prisma.avatarHistory.deleteMany({
+                        where: {
+                            id: {
+                                in: oldRecords.map(record => record.id)
+                            }
+                        }
+                    });
+                }
+                
+                // 4. 将所有当前头像标记设为 false
+                await prisma.avatarHistory.updateMany({
+                    where: { 
+                        userId: userId,
+                        isCurrent: true 
+                    },
+                    data: { isCurrent: false }
+                });
+                
+                // 5. 检查新头像是否已存在于历史记录中
+                const existingNewAvatar = await prisma.avatarHistory.findFirst({
+                    where: {
+                        userId: userId,
+                        avatarUrl: newAvatarUrl
+                    }
+                });
+                
+                if (existingNewAvatar) {
+                    // 如果新头像已存在，直接将其设为当前头像
+                    await prisma.avatarHistory.update({
+                        where: { id: existingNewAvatar.id },
+                        data: { isCurrent: true }
+                    });
+                } else {
+                    // 如果新头像不存在，创建新记录
+                    await prisma.avatarHistory.create({
+                        data: {
+                            userId: userId,
+                            avatarUrl: newAvatarUrl,
+                            isCurrent: true
+                        }
+                    });
+                }
+                
+                // 6. 更新用户表的头像字段
+                const updatedUser = await prisma.user.update({
+                    where: { id: userId },
+                    data: { 
+                        avatar: newAvatarUrl,
+                        updatedAt: new Date()
+                    }
+                });
+                
+                return updatedUser;
+            });
+            
+            return {
+                success: true,
+                message: "头像更新成功"
+            };
+            
+        } catch (error) {
+            logger.error('更新头像历史记录失败:', error);
+            return {
+                success: false,
+                code: ERROR_CODES.INTERNAL_ERROR,
+                message: "头像更新失败"
+            };
+        }
+    }
+    
+    /**
+     * 获取用户头像历史记录
+     * @param {number} userId - 用户ID
+     */
+    async getAvatarHistory(userId) {
+        try {
+            const history = await this.prisma.avatarHistory.findMany({
+                where: { userId: userId },
+                orderBy: { createdAt: 'desc' },
+                take: 4 // 当前头像 + 3个历史头像
+            });
+            
+            return {
+                success: true,
+                data: {
+                    current: history.find(h => h.isCurrent)?.avatarUrl || null,
+                    history: history.filter(h => !h.isCurrent).map(h => ({
+                        id: h.id,
+                        avatarUrl: h.avatarUrl,
+                        createdAt: h.createdAt
+                    }))
+                }
+            };
+            
+        } catch (error) {
+            logger.error('获取头像历史记录失败:', error);
+            return {
+                success: false,
+                code: ERROR_CODES.INTERNAL_ERROR,
+                message: "获取头像历史失败"
+            };
+        }
+    }
+    
+    /**
+     * 切换到历史头像
+     * @param {number} userId - 用户ID
+     * @param {number} historyId - 历史记录ID
+     */
+    async switchToHistoryAvatar(userId, historyId) {
+        try {
+            const result = await this.prisma.$transaction(async (prisma) => {
+                // 1. 验证历史记录是否属于该用户
+                const historyRecord = await prisma.avatarHistory.findFirst({
+                    where: { 
+                        id: historyId,
+                        userId: userId,
+                        isCurrent: false
+                    }
+                });
+                
+                if (!historyRecord) {
+                    throw new Error('历史记录不存在或无权限');
+                }
+                
+                // 2. 获取当前头像
+                const currentUser = await prisma.user.findUnique({
+                    where: { id: userId },
+                    select: { avatar: true }
+                });
+                
+                // 3. 处理当前头像的历史记录
+                if (currentUser.avatar) {
+                    // 检查该头像是否已经存在于历史记录中
+                    const existingHistory = await prisma.avatarHistory.findFirst({
+                        where: {
+                            userId: userId,
+                            avatarUrl: currentUser.avatar
+                        }
+                    });
+                    
+                    if (existingHistory) {
+                        // 如果头像已存在历史记录中，只需要将其设为非当前头像
+                        await prisma.avatarHistory.updateMany({
+                            where: {
+                                userId: userId,
+                                isCurrent: true,
+                            },
+                            data: { isCurrent: false },
+                        });
+                    } else {
+                        // 如果头像不在历史记录中，创建新的历史记录
+                        await prisma.avatarHistory.updateMany({
+                            where: { 
+                                userId: userId,
+                                isCurrent: true 
+                            },
+                            data: { isCurrent: false }
+                        });
+                        
+                        await prisma.avatarHistory.create({
+                            data: {
+                                userId: userId,
+                                avatarUrl: currentUser.avatar,
+                                isCurrent: false
+                            }
+                        });
+                    }
+                }
+                
+                // 4. 将选中的历史头像设为当前头像
+                await prisma.avatarHistory.update({
+                    where: { id: historyId },
+                    data: { isCurrent: true }
+                });
+                
+                // 5. 更新用户表
+                const updatedUser = await prisma.user.update({
+                    where: { id: userId },
+                    data: { 
+                        avatar: historyRecord.avatarUrl,
+                        updatedAt: new Date()
+                    }
+                });
+                
+                return updatedUser;
+            });
+            
+            return {
+                success: true,
+                message: "头像切换成功",
+                data: new UserResponseDto(result).toProfile()
+            };
+            
+        } catch (error) {
+            logger.error('切换头像失败:', error);
+            return {
+                success: false,
+                code: ERROR_CODES.INTERNAL_ERROR,
+                message: error.message || "头像切换失败"
+            };
+        }
+    }
+
+    /**
+     * 清理孤儿头像文件
+     * @returns {Object} 清理结果
+     */
+    async cleanOrphanAvatars() {
+        try {
+            const fs = require('fs').promises;
+            const path = require('path');
+            
+            // 1. 获取所有头像文件
+            const uploadDir = path.join(process.cwd(), 'uploads', 'avatars');
+            const files = await fs.readdir(uploadDir);
+            
+            // 2. 获取所有正在使用的头像URL
+            const usedAvatars = new Set();
+            
+            // 从用户表获取当前使用的头像
+            const users = await this.prisma.user.findMany({
+                select: { avatar: true },
+                where: { avatar: { not: null } }
+            });
+            
+            users.forEach(user => {
+                if (user.avatar) {
+                    const filename = user.avatar.replace('/uploads/avatars/', '');
+                    usedAvatars.add(filename);
+                }
+            });
+            
+            // 从头像历史表获取历史头像
+            const avatarHistory = await this.prisma.avatarHistory.findMany({
+                select: { avatarUrl: true }
+            });
+            
+            avatarHistory.forEach(history => {
+                if (history.avatarUrl) {
+                    const filename = history.avatarUrl.replace('/uploads/avatars/', '');
+                    usedAvatars.add(filename);
+                }
+            });
+            
+            // 3. 找出孤儿文件
+            const orphanFiles = files.filter(file => !usedAvatars.has(file));
+            
+            // 4. 删除孤儿文件
+            let deletedCount = 0;
+            const deletedFiles = [];
+            
+            for (const file of orphanFiles) {
+                try {
+                    const filePath = path.join(uploadDir, file);
+                    await fs.unlink(filePath);
+                    deletedCount++;
+                    deletedFiles.push(file);
+                    logger.info(`删除孤儿头像文件: ${file}`);
+                } catch (error) {
+                    logger.error(`删除文件失败: ${file}`, error);
+                }
+            }
+            
+            logger.info(`头像清理完成，删除了 ${deletedCount} 个孤儿文件`);
+            
+            return {
+                success: true,
+                message: `清理完成，删除了 ${deletedCount} 个孤儿文件`,
+                data: {
+                    totalFiles: files.length,
+                    usedFiles: usedAvatars.size,
+                    deletedCount,
+                    deletedFiles
+                }
+            };
+            
+        } catch (error) {
+            logger.error('清理孤儿头像失败:', error);
+            return {
+                success: false,
+                code: ERROR_CODES.INTERNAL_ERROR,
+                message: "清理孤儿头像失败"
+            };
+        }
+    }
+
+    /**
      * 更新用户信息
      * @param {number} userId - 用户ID
      * @param {Object} updateData - 更新数据

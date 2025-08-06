@@ -33,3 +33,19 @@ export function changePasswordApi(data: Profile.ChangePasswordRequestData) {
     data
   })
 }
+
+/** 获取头像历史记录 */
+export function getAvatarHistoryApi() {
+  return request<Profile.GetAvatarHistoryResponseData>({
+    url: "/user/avatar/history",
+    method: "get"
+  })
+}
+
+/** 切换到历史头像 */
+export function switchToHistoryAvatarApi(historyId: number) {
+  return request<Profile.SwitchAvatarResponseData>({
+    url: `/user/avatar/switch/${historyId}`,
+    method: "put"
+  })
+}

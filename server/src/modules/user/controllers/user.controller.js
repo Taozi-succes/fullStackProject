@@ -564,12 +564,12 @@ class UserController {
   };
 
   /**
-   * 上传头像
+   * 上传头像（更新版本 - 支持历史记录）
    * POST /api/user/avatar
    */
   uploadAvatar = async (req, res) => {
     try {
-      const userId = req.user.userId; // 从JWT中间件获取
+      const userId = req.user.userId;
       
       if (!req.file) {
         return res.status(HTTP_STATUS.BAD_REQUEST).json({
@@ -579,28 +579,98 @@ class UserController {
         });
       }
 
-      // 构建头像URL（这里假设文件已经通过multer中间件处理）
       const avatarUrl = `/uploads/avatars/${req.file.filename}`;
       
-      // 更新用户头像
-      const result = await this.userService.updateUser(userId, { avatar: avatarUrl });
+      // 使用新的头像历史管理方法
+      const result = await this.userService.updateAvatarWithHistory(userId, avatarUrl);
       
       if (!result.success) {
         const statusCode = this.getStatusCodeByErrorCode(result.code);
         return res.status(statusCode).json(result);
       }
 
-      res.status(HTTP_STATUS.OK).json({
+      res.json({
         success: true,
         message: '头像上传成功',
         data: {
-          avatarUrl
+          avatarUrl: avatarUrl
         }
       });
       
     } catch (error) {
-      logger.error('上传头像控制器错误:', error);
-      res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      logger.error('上传头像错误:', error);
+      res.status(HTTP_STATUS.INTERNAL_ERROR).json({
+        success: false,
+        code: ERROR_CODES.INTERNAL_ERROR,
+        message: '服务器内部错误'
+      });
+    }
+  };
+
+  /**
+   * 获取头像历史记录
+   * GET /api/user/avatar/history
+   */
+  getAvatarHistory = async (req, res) => {
+    try {
+      const userId = req.user.userId;
+      
+      const result = await this.userService.getAvatarHistory(userId);
+      
+      if (!result.success) {
+        const statusCode = this.getStatusCodeByErrorCode(result.code);
+        return res.status(statusCode).json(result);
+      }
+
+      res.json({
+        success: true,
+        message: '获取头像历史成功',
+        data: result.data
+      });
+      
+    } catch (error) {
+      logger.error('获取头像历史错误:', error);
+      res.status(HTTP_STATUS.INTERNAL_ERROR).json({
+        success: false,
+        code: ERROR_CODES.INTERNAL_ERROR,
+        message: '服务器内部错误'
+      });
+    }
+  };
+
+  /**
+   * 切换到历史头像
+   * PUT /api/user/avatar/switch/:historyId
+   */
+  switchToHistoryAvatar = async (req, res) => {
+    try {
+      const userId = req.user.userId;
+      const historyId = parseInt(req.params.historyId);
+      
+      if (!historyId || isNaN(historyId)) {
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({
+          success: false,
+          code: ERROR_CODES.VALIDATION_ERROR,
+          message: '无效的历史记录ID'
+        });
+      }
+      
+      const result = await this.userService.switchToHistoryAvatar(userId, historyId);
+      
+      if (!result.success) {
+        const statusCode = this.getStatusCodeByErrorCode(result.code);
+        return res.status(statusCode).json(result);
+      }
+
+      res.json({
+        success: true,
+        message: '头像切换成功',
+        data: result.data
+      });
+      
+    } catch (error) {
+      logger.error('切换头像错误:', error);
+      res.status(HTTP_STATUS.INTERNAL_ERROR).json({
         success: false,
         code: ERROR_CODES.INTERNAL_ERROR,
         message: '服务器内部错误'
@@ -714,6 +784,31 @@ class UserController {
         message: '服务器内部错误'
       });
     }
+  };
+
+  /**
+   * 清理孤儿头像文件
+   * POST /api/admin/avatar/cleanup
+   */
+  cleanOrphanAvatars = async (req, res) => {
+      try {
+          const result = await this.userService.cleanOrphanAvatars();
+          
+          if (!result.success) {
+              const statusCode = this.getStatusCodeByErrorCode(result.code);
+              return res.status(statusCode).json(result);
+          }
+          
+          res.json(result);
+          
+      } catch (error) {
+          logger.error('清理孤儿头像控制器错误:', error);
+          res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+              success: false,
+              code: ERROR_CODES.INTERNAL_ERROR,
+              message: '服务器内部错误'
+          });
+      }
   };
 }
 

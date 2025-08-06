@@ -9,7 +9,7 @@
   "scripts": {
     "start": "npx nodemon server.js",
     "dev": "pm2 start ecosystem.config.js",
-    "dev:cluster": "pm2 start ecosystem.config.js --only express-pm2-cluster --env development_cluster",  
+    "dev:cluster": "pm2 start ecosystem.config.js --only express-pm2-cluster --env development_cluster",
     "dev:stop": "pm2 stop ecosystem.config.js",
     "dev:restart": "pm2 restart ecosystem.config.js",
     "dev:reload": "pm2 reload ecosystem.config.js",
@@ -44,6 +44,7 @@
     "morgan": "^1.10.1",
     "multer": "^2.0.2",
     "mysql2": "^3.14.2",
+    "node-cron": "^4.2.1",
     "prisma": "^6.12.0",
     "svg-captcha": "^1.4.0"
   },

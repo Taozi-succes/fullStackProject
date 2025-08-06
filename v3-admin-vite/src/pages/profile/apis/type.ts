@@ -28,8 +28,6 @@ export type UpdateProfileResponseData = ApiResponseData<UpdateProfileData>
 export interface UploadAvatarData {
   /** 头像URL */
   avatarUrl: string
-  /** 文件名 */
-  filename: string
 }
 
 export type UploadAvatarResponseData = ApiResponseData<UploadAvatarData>
@@ -51,3 +49,30 @@ export interface ChangePasswordData {
 }
 
 export type ChangePasswordResponseData = ApiResponseData<ChangePasswordData>
+
+/** 头像历史记录项 */
+export interface AvatarHistoryItem {
+  id: number
+  avatarUrl: string
+  createdAt: string
+}
+
+/** 获取头像历史记录响应数据 */
+export interface GetAvatarHistoryData {
+  current: string | null
+  history: AvatarHistoryItem[]
+}
+
+export type GetAvatarHistoryResponseData = ApiResponseData<GetAvatarHistoryData>
+
+/** 切换头像响应数据 */
+export interface SwitchAvatarData {
+  user: {
+    id: number
+    username: string
+    email: string
+    avatar: string | null
+  }
+}
+
+export type SwitchAvatarResponseData = ApiResponseData<SwitchAvatarData>
