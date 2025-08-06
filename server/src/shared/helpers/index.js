@@ -2,11 +2,15 @@
  * 共享助手函数
  * 提供中间件和通用助手函数
  */
-const { JwtUtils } = require('../utils');
-const logger = require('../../core/logger');
-const { HTTP_STATUS, ERROR_CODES, RESPONSE_MESSAGES } = require('../../common/constants');
-const { UserStatusEnum } = require('../../common/enums');
-const databaseService = require('../../core/database/prisma');
+const { JwtUtils } = require('../utils')
+const logger = require('../../core/logger')
+const {
+  HTTP_STATUS,
+  ERROR_CODES,
+  RESPONSE_MESSAGES,
+} = require('../../common/constants')
+const { UserStatusEnum } = require('../../common/enums')
+const databaseService = require('../../core/database/prisma')
 
 /**
  * JWT认证中间件
@@ -15,31 +19,31 @@ const databaseService = require('../../core/database/prisma');
 const authenticateToken = async (req, res, next) => {
   try {
     // 从请求头获取令牌
-    const token = JwtUtils.extractTokenFromHeader(req.headers.authorization);
+    const token = JwtUtils.extractTokenFromHeader(req.headers.authorization)
 
-    console.log('获取令牌===',token);
-    
+    console.log('获取令牌===', token)
+
     if (!token) {
       return res.status(HTTP_STATUS.UNAUTHORIZED).json({
         success: false,
         code: ERROR_CODES.TOKEN_MISSING,
-        message: '访问令牌缺失'
-      });
+        message: '访问令牌缺失',
+      })
     }
 
     // 验证令牌
-    const decoded = JwtUtils.verifyToken(token);
-    
+    const decoded = JwtUtils.verifyToken(token)
+
     if (decoded.type !== 'access') {
       return res.status(HTTP_STATUS.UNAUTHORIZED).json({
         success: false,
         code: ERROR_CODES.TOKEN_INVALID,
-        message: '令牌类型错误'
-      });
+        message: '令牌类型错误',
+      })
     }
 
     // 检查用户是否存在且状态正常
-    const prisma = databaseService.getClient();
+    const prisma = databaseService.getClient()
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
       select: {
@@ -47,24 +51,24 @@ const authenticateToken = async (req, res, next) => {
         username: true,
         email: true,
         status: true,
-        roles: true
-      }
-    });
+        roles: true,
+      },
+    })
 
     if (!user) {
       return res.status(HTTP_STATUS.UNAUTHORIZED).json({
         success: false,
         code: ERROR_CODES.USER_NOT_FOUND,
-        message: RESPONSE_MESSAGES.USER_NOT_FOUND
-      });
+        message: RESPONSE_MESSAGES.USER_NOT_FOUND,
+      })
     }
 
     if (user.status !== UserStatusEnum.ACTIVE) {
       return res.status(HTTP_STATUS.FORBIDDEN).json({
         success: false,
         code: ERROR_CODES.ACCOUNT_DISABLED,
-        message: '账户已被禁用'
-      });
+        message: '账户已被禁用',
+      })
     }
 
     // 将用户信息添加到请求对象
@@ -73,25 +77,24 @@ const authenticateToken = async (req, res, next) => {
       username: user.username,
       email: user.email,
       status: user.status,
-      roles: JSON.parse(user.roles)
-    };
+      roles: JSON.parse(user.roles),
+    }
 
-    next();
-    
+    next()
   } catch (error) {
-    logger.error('JWT认证中间件错误:', error);
-    
+    logger.error('JWT认证中间件错误:', error)
+
     if (error.message.includes('TOKEN_')) {
       return res.status(HTTP_STATUS.UNAUTHORIZED).json({
         success: false,
         code: error.message,
-        message: RESPONSE_MESSAGES.TOKEN_INVALID
-      });
+        message: RESPONSE_MESSAGES.TOKEN_INVALID,
+      })
     }
-    
-    return res.error('认证服务异常11',ERROR_CODES.TOKEN_INVALID) 
+
+    return res.error('认证服务异常11', ERROR_CODES.TOKEN_INVALID)
   }
-};
+}
 
 /**
  * 可选JWT认证中间件
@@ -99,46 +102,45 @@ const authenticateToken = async (req, res, next) => {
  */
 const optionalAuth = async (req, res, next) => {
   try {
-    const token = JwtUtils.extractTokenFromHeader(req.headers.authorization);
-    
+    const token = JwtUtils.extractTokenFromHeader(req.headers.authorization)
+
     if (!token) {
       // 没有令牌，直接跳过
-      return next();
+      return next()
     }
 
     // 有令牌，进行验证
-    const decoded = JwtUtils.verifyToken(token);
-    
+    const decoded = JwtUtils.verifyToken(token)
+
     if (decoded.type === 'access') {
-      const prisma = databaseService.getClient();
+      const prisma = databaseService.getClient()
       const user = await prisma.user.findUnique({
         where: { id: decoded.userId },
         select: {
           id: true,
           username: true,
           email: true,
-          status: true
-        }
-      });
+          status: true,
+        },
+      })
 
       if (user && user.status === UserStatusEnum.ACTIVE) {
         req.user = {
           userId: user.id,
           username: user.username,
           email: user.email,
-          status: user.status
-        };
+          status: user.status,
+        }
       }
     }
 
-    next();
-    
+    next()
   } catch (error) {
     // 可选认证中，令牌验证失败时不返回错误，直接跳过
-    logger.warn('可选JWT认证失败:', error.message);
-    next();
+    logger.warn('可选JWT认证失败:', error.message)
+    next()
   }
-};
+}
 
 /**
  * 角色权限中间件（改进版）
@@ -150,42 +152,46 @@ const optionalAuth = async (req, res, next) => {
  */
 const requireRole = (requiredRoles, options = {}) => {
   return (req, res, next) => {
-
     // 检查用户是否有角色信息
     if (!req.user.roles || !Array.isArray(req.user.roles)) {
-      logger.warn('用户角色信息缺失', { userId: req.user.userId });
-      return res.error('用户角色信息缺失，无法进行权限检查!!',ERROR_CODES.INSUFFICIENT_PERMISSIONS);
+      logger.warn('用户角色信息缺失', { userId: req.user.userId })
+      return res.error(
+        '用户角色信息缺失，无法进行权限检查!!',
+        ERROR_CODES.INSUFFICIENT_PERMISSIONS
+      )
     }
 
     // 标准化必需角色为数组
-    const rolesArray = Array.isArray(requiredRoles) ? requiredRoles : [requiredRoles];
-    const userRoles = req.user.roles;
-    
+    const rolesArray = Array.isArray(requiredRoles)
+      ? requiredRoles
+      : [requiredRoles]
+    const userRoles = req.user.roles
+
     // 配置选项
-    const { requireAll = false, strict = true } = options;
+    const { requireAll = false, strict = true } = options
 
     // 角色匹配函数
     const roleMatches = (userRole, requiredRole) => {
       if (strict) {
-        return userRole === requiredRole;
+        return userRole === requiredRole
       } else {
-        return userRole.toLowerCase() === requiredRole.toLowerCase();
+        return userRole.toLowerCase() === requiredRole.toLowerCase()
       }
-    };
+    }
 
     // 检查权限逻辑
-    let hasPermission = false;
+    let hasPermission = false
 
     if (requireAll) {
       // 需要拥有所有指定角色
-      hasPermission = rolesArray.every(requiredRole => 
-        userRoles.some(userRole => roleMatches(userRole, requiredRole))
-      );
+      hasPermission = rolesArray.every((requiredRole) =>
+        userRoles.some((userRole) => roleMatches(userRole, requiredRole))
+      )
     } else {
       // 只需要拥有其中一个角色
-      hasPermission = rolesArray.some(requiredRole => 
-        userRoles.some(userRole => roleMatches(userRole, requiredRole))
-      );
+      hasPermission = rolesArray.some((requiredRole) =>
+        userRoles.some((userRole) => roleMatches(userRole, requiredRole))
+      )
     }
 
     if (!hasPermission) {
@@ -193,54 +199,57 @@ const requireRole = (requiredRoles, options = {}) => {
         userId: req.user.userId,
         userRoles: userRoles,
         requiredRoles: rolesArray,
-        requireAll: requireAll
-      });
+        requireAll: requireAll,
+      })
 
-      return res.error('权限不足，无法访问此资源!!',ERROR_CODES.INSUFFICIENT_PERMISSIONS);
+      return res.error(
+        '权限不足，无法访问此资源!!',
+        ERROR_CODES.INSUFFICIENT_PERMISSIONS
+      )
     }
 
     // 权限检查通过，记录日志
     logger.info('权限检查通过', {
       userId: req.user.userId,
       userRoles: userRoles,
-      requiredRoles: rolesArray
-    });
+      requiredRoles: rolesArray,
+    })
 
-    next();
-  };
-};
+    next()
+  }
+}
 
 /**
  * 请求日志中间件
  * 记录HTTP请求信息
  */
 const requestLogger = (req, res, next) => {
-  const startTime = Date.now();
-  
+  const startTime = Date.now()
+
   // 记录请求开始
   logger.info('HTTP请求开始', {
     method: req.method,
     url: req.originalUrl,
     ip: req.ip,
     userAgent: req.get('User-Agent'),
-    userId: req.user?.userId
-  });
+    userId: req.user?.userId,
+  })
 
   // 监听响应结束
   res.on('finish', () => {
-    const duration = Date.now() - startTime;
-    
+    const duration = Date.now() - startTime
+
     logger.info('HTTP请求完成', {
       method: req.method,
       url: req.originalUrl,
       statusCode: res.statusCode,
       duration: `${duration}ms`,
-      userId: req.user?.userId
-    });
-  });
+      userId: req.user?.userId,
+    })
+  })
 
-  next();
-};
+  next()
+}
 
 /**
  * 错误处理中间件
@@ -252,16 +261,16 @@ const errorHandler = (error, req, res, next) => {
     stack: error.stack,
     url: req.originalUrl,
     method: req.method,
-    userId: req.user?.userId
-  });
+    userId: req.user?.userId,
+  })
 
   // Prisma错误处理
   if (error.code && error.code.startsWith('P')) {
     return res.status(HTTP_STATUS.BAD_REQUEST).json({
       success: false,
       code: ERROR_CODES.DATABASE_ERROR,
-      message: '数据库操作失败'
-    });
+      message: '数据库操作失败',
+    })
   }
 
   // JWT错误处理
@@ -269,16 +278,16 @@ const errorHandler = (error, req, res, next) => {
     return res.status(HTTP_STATUS.UNAUTHORIZED).json({
       success: false,
       code: ERROR_CODES.TOKEN_INVALID,
-      message: RESPONSE_MESSAGES.TOKEN_INVALID
-    });
+      message: RESPONSE_MESSAGES.TOKEN_INVALID,
+    })
   }
 
   if (error.name === 'TokenExpiredError') {
     return res.status(HTTP_STATUS.UNAUTHORIZED).json({
       success: false,
       code: ERROR_CODES.TOKEN_EXPIRED,
-      message: RESPONSE_MESSAGES.TOKEN_EXPIRED
-    });
+      message: RESPONSE_MESSAGES.TOKEN_EXPIRED,
+    })
   }
 
   // 验证错误处理
@@ -286,17 +295,17 @@ const errorHandler = (error, req, res, next) => {
     return res.status(HTTP_STATUS.BAD_REQUEST).json({
       success: false,
       code: ERROR_CODES.VALIDATION_ERROR,
-      message: error.message
-    });
+      message: error.message,
+    })
   }
 
   // 默认错误处理
   res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
     success: false,
     code: ERROR_CODES.INTERNAL_ERROR,
-    message: '服务器内部错误'
-  });
-};
+    message: '服务器内部错误',
+  })
+}
 
 /**
  * 404处理中间件
@@ -306,15 +315,15 @@ const notFoundHandler = (req, res) => {
   logger.warn('404 - 路由未找到', {
     method: req.method,
     url: req.originalUrl,
-    ip: req.ip
-  });
+    ip: req.ip,
+  })
 
   res.status(HTTP_STATUS.NOT_FOUND).json({
     success: false,
     code: ERROR_CODES.ROUTE_NOT_FOUND,
-    message: '请求的资源不存在'
-  });
-};
+    message: '请求的资源不存在',
+  })
+}
 
 /**
  * CORS中间件配置
@@ -327,25 +336,26 @@ const corsOptions = {
       'http://localhost:3000',
       'http://localhost:3001',
       'http://127.0.0.1:3000',
-      'http://127.0.0.1:3001'
-    ];
+      'http://127.0.0.1:3001',
+      'http://117.72.189.59',
+    ]
 
     // 开发环境允许所有域名
     if (process.env.NODE_ENV === 'development') {
-      return callback(null, true);
+      return callback(null, true)
     }
 
     // 生产环境检查域名白名单
     if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
+      callback(null, true)
     } else {
-      callback(new Error('不允许的跨域请求'));
+      callback(new Error('不允许的跨域请求'))
     }
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-};
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+}
 
 /**
  * 响应格式化中间件
@@ -358,22 +368,26 @@ const responseFormatter = (req, res, next) => {
       success: true,
       message,
       data,
-      timestamp: new Date().toLocaleString()
-    });
-  };
+      timestamp: new Date().toLocaleString(),
+    })
+  }
 
   // 错误响应格式化
-  res.error = (message = '操作失败', code = ERROR_CODES.INTERNAL_ERROR, statusCode = HTTP_STATUS.OK) => {
+  res.error = (
+    message = '操作失败',
+    code = ERROR_CODES.INTERNAL_ERROR,
+    statusCode = HTTP_STATUS.OK
+  ) => {
     res.status(statusCode).json({
       success: false,
       code,
       message,
-      timestamp: new Date().toLocaleString()
-    });
-  };
+      timestamp: new Date().toLocaleString(),
+    })
+  }
 
-  next();
-};
+  next()
+}
 
 /**
  * 分页助手函数
@@ -386,17 +400,17 @@ const paginationHelper = {
    * @returns {Object} 分页信息
    */
   getPaginationParams(query) {
-    const page = Math.max(1, parseInt(query.page) || 1);
-    const limit = Math.min(100, Math.max(1, parseInt(query.limit) || 10));
-    const skip = (page - 1) * limit;
+    const page = Math.max(1, parseInt(query.page) || 1)
+    const limit = Math.min(100, Math.max(1, parseInt(query.limit) || 10))
+    const skip = (page - 1) * limit
 
     return {
       page,
       limit,
       skip,
       sortBy: query.sortBy || 'createdAt',
-      sortOrder: query.sortOrder === 'asc' ? 'asc' : 'desc'
-    };
+      sortOrder: query.sortOrder === 'asc' ? 'asc' : 'desc',
+    }
   },
 
   /**
@@ -407,8 +421,8 @@ const paginationHelper = {
    * @returns {Object} 分页响应
    */
   formatPaginationResponse(data, total, params) {
-    const { page, limit } = params;
-    const totalPages = Math.ceil(total / limit);
+    const { page, limit } = params
+    const totalPages = Math.ceil(total / limit)
 
     return {
       data,
@@ -418,11 +432,11 @@ const paginationHelper = {
         count: data.length,
         totalCount: total,
         hasNext: page < totalPages,
-        hasPrev: page > 1
-      }
-    };
-  }
-};
+        hasPrev: page > 1,
+      },
+    }
+  },
+}
 
 /**
  * 缓存助手函数
@@ -430,8 +444,8 @@ const paginationHelper = {
  */
 class CacheHelper {
   constructor() {
-    this.cache = new Map();
-    this.ttl = new Map();
+    this.cache = new Map()
+    this.ttl = new Map()
   }
 
   /**
@@ -441,8 +455,8 @@ class CacheHelper {
    * @param {number} ttlSeconds - 过期时间（秒）
    */
   set(key, value, ttlSeconds = 300) {
-    this.cache.set(key, value);
-    this.ttl.set(key, Date.now() + ttlSeconds * 1000);
+    this.cache.set(key, value)
+    this.ttl.set(key, Date.now() + ttlSeconds * 1000)
   }
 
   /**
@@ -451,14 +465,14 @@ class CacheHelper {
    * @returns {*} 缓存值
    */
   get(key) {
-    const expireTime = this.ttl.get(key);
-    
+    const expireTime = this.ttl.get(key)
+
     if (!expireTime || Date.now() > expireTime) {
-      this.delete(key);
-      return null;
+      this.delete(key)
+      return null
     }
 
-    return this.cache.get(key);
+    return this.cache.get(key)
   }
 
   /**
@@ -466,39 +480,39 @@ class CacheHelper {
    * @param {string} key - 缓存键
    */
   delete(key) {
-    this.cache.delete(key);
-    this.ttl.delete(key);
+    this.cache.delete(key)
+    this.ttl.delete(key)
   }
 
   /**
    * 清空缓存
    */
   clear() {
-    this.cache.clear();
-    this.ttl.clear();
+    this.cache.clear()
+    this.ttl.clear()
   }
 
   /**
    * 清理过期缓存
    */
   cleanup() {
-    const now = Date.now();
-    
+    const now = Date.now()
+
     for (const [key, expireTime] of this.ttl.entries()) {
       if (now > expireTime) {
-        this.delete(key);
+        this.delete(key)
       }
     }
   }
 }
 
 // 创建全局缓存实例
-const globalCache = new CacheHelper();
+const globalCache = new CacheHelper()
 
 // 定期清理过期缓存
 setInterval(() => {
-  globalCache.cleanup();
-}, 60000); // 每分钟清理一次
+  globalCache.cleanup()
+}, 60000) // 每分钟清理一次
 
 /**
  * 文件上传助手函数
@@ -511,7 +525,7 @@ const fileUploadHelper = {
    * @returns {boolean} 是否允许
    */
   isAllowedFileType(mimetype, allowedTypes) {
-    return allowedTypes.includes(mimetype);
+    return allowedTypes.includes(mimetype)
   },
 
   /**
@@ -521,7 +535,7 @@ const fileUploadHelper = {
    * @returns {boolean} 是否允许
    */
   isAllowedFileSize(size, maxSize) {
-    return size <= maxSize;
+    return size <= maxSize
   },
 
   /**
@@ -530,32 +544,32 @@ const fileUploadHelper = {
    * @returns {string} 唯一文件名
    */
   generateUniqueFileName(originalName) {
-    const timestamp = Date.now();
-    const random = Math.random().toString(36).substring(2);
-    const extension = originalName.split('.').pop();
-    
-    return `${timestamp}_${random}.${extension}`;
-  }
-};
+    const timestamp = Date.now()
+    const random = Math.random().toString(36).substring(2)
+    const extension = originalName.split('.').pop()
+
+    return `${timestamp}_${random}.${extension}`
+  },
+}
 
 module.exports = {
   // 认证中间件
   authenticateToken,
   optionalAuth,
   requireRole,
-  
+
   // 通用中间件
   requestLogger,
   errorHandler,
   notFoundHandler,
   responseFormatter,
-  
+
   // 配置
   corsOptions,
-  
+
   // 助手函数
   paginationHelper,
   CacheHelper,
   globalCache,
-  fileUploadHelper
-};
+  fileUploadHelper,
+}
