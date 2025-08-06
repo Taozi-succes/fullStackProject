@@ -42,23 +42,8 @@ class Application {
    * 初始化中间件
    */
   initializeMiddlewares() {
-    // 安全中间件
-    this.app.use(helmet({
-      contentSecurityPolicy: {
-        directives: {
-          defaultSrc: ["'self'"],
-          styleSrc: ["'self'", "'unsafe-inline'"],
-          scriptSrc: ["'self'"],
-          imgSrc: ["'self'", "data:"],
-          connectSrc: ["'self'"],
-          fontSrc: ["'self'"],
-          objectSrc: ["'none'"],
-          mediaSrc: ["'self'"],
-          frameSrc: ["'none'"]
-        }
-      },
-      crossOriginEmbedderPolicy: false
-    }));
+    // 安全中间件  用默认配置
+    this.app.use(helmet());
 
     // CORS配置
     this.app.use(cors(corsOptions));

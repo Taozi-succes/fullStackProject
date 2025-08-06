@@ -89,11 +89,7 @@ const authenticateToken = async (req, res, next) => {
       });
     }
     
-    return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
-      success: false,
-      code: ERROR_CODES.INTERNAL_ERROR,
-      message: '认证服务异常'
-    });
+    return res.error('认证服务异常11',ERROR_CODES.TOKEN_INVALID) 
   }
 };
 

@@ -229,7 +229,6 @@ class UpdateUserDto {
   constructor(data) {
     this.username = data.username?.trim();
     this.email = data.email?.trim().toLowerCase();
-    this.avatar = data.avatar?.trim();
   }
 
   /**
@@ -239,7 +238,6 @@ class UpdateUserDto {
     return {
       username: this.username,
       email: this.email,
-      avatar: this.avatar
     };
   }
 
@@ -289,14 +287,6 @@ class UpdateUserDto {
       }
     }
 
-    // 验证头像URL（如果提供）
-    if (this.avatar !== undefined && this.avatar && !ValidationUtils.isUrl(this.avatar)) {
-      errors.push({
-        field: 'avatar',
-        message: '头像URL格式无效'
-      });
-    }
-
     return {
       isValid: errors.length === 0,
       errors
@@ -315,10 +305,6 @@ class UpdateUserDto {
     if (this.email !== undefined) {
       fields.email = this.email;
     }
-    if (this.avatar !== undefined) {
-      fields.avatar = this.avatar;
-    }
-    
     return fields;
   }
 }
@@ -490,64 +476,6 @@ class ChangePasswordDto {
     };
   }
 
-  /**
-   * 验证修改密码数据
-   */
-  validate() {
-    const errors = [];
-
-    // 验证当前密码
-    if (!this.currentPassword) {
-      errors.push({
-        field: 'currentPassword',
-        message: '当前密码不能为空'
-      });
-    }
-
-    // 验证新密码
-    if (!this.newPassword) {
-      errors.push({
-        field: 'newPassword',
-        message: '新密码不能为空'
-      });
-    } else if (this.newPassword.length < VALIDATION_RULES.PASSWORD.MIN_LENGTH) {
-      errors.push({
-        field: 'newPassword',
-        message: `新密码长度不能少于${VALIDATION_RULES.PASSWORD.MIN_LENGTH}位`
-      });
-    } else if (this.newPassword.length > VALIDATION_RULES.PASSWORD.MAX_LENGTH) {
-      errors.push({
-        field: 'newPassword',
-        message: `新密码长度不能超过${VALIDATION_RULES.PASSWORD.MAX_LENGTH}位`
-      });
-    }
-
-    // 验证确认密码
-    if (!this.confirmPassword) {
-      errors.push({
-        field: 'confirmPassword',
-        message: '确认密码不能为空'
-      });
-    } else if (this.newPassword !== this.confirmPassword) {
-      errors.push({
-        field: 'confirmPassword',
-        message: '两次输入的新密码不一致'
-      });
-    }
-
-    // 验证新密码不能与当前密码相同
-    if (this.currentPassword && this.newPassword && this.currentPassword === this.newPassword) {
-      errors.push({
-        field: 'newPassword',
-        message: '新密码不能与当前密码相同'
-      });
-    }
-
-    return {
-      isValid: errors.length === 0,
-      errors
-    };
-  }
 }
 
 /**

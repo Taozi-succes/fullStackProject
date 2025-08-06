@@ -31,7 +31,7 @@ const captchaId = ref("")
 /** 登录表单数据 */
 const loginFormData: LoginRequestData = reactive({
   username: "admin",
-  password: "admin1234",
+  password: "abc123",
   captchaId: "",
   captchaCode: ""
 })
@@ -43,7 +43,7 @@ const loginFormRules: FormRules = {
   ],
   password: [
     { required: true, message: "请输入密码", trigger: "blur" },
-    { min: 3, max: 16, message: "长度在 8 到 16 个字符", trigger: "blur" }
+    { min: 3, max: 16, message: "长度在 3 到 16 个字符", trigger: "blur" }
   ],
   captchaCode: [
     { required: true, message: "请输入验证码", trigger: "blur" }

@@ -3,7 +3,6 @@ import { setToken as _setToken, getToken, removeToken } from "@@/utils/cache/coo
 import { pinia } from "@/pinia"
 import { resetRouter } from "@/router"
 import { routerConfig } from "@/router/config"
-import { usePermissionStore } from "./permission"
 import { useSettingsStore } from "./settings"
 import { useTagsViewStore } from "./tags-view"
 
@@ -43,6 +42,7 @@ export const useUserStore = defineStore("user", () => {
 
   // 设置头像
   const setAvatar = (value: string) => {
+    // 如果是相对路径，在开发环境下不需要添加完整URL，因为会走代理
     avatar.value = value
   }
 
@@ -84,7 +84,6 @@ export const useUserStore = defineStore("user", () => {
 
   // 登出
   const logout = () => {
-    const permissionStore = usePermissionStore()
     removeToken()
     token.value = ""
     refreshToken.value = ""
@@ -94,7 +93,6 @@ export const useUserStore = defineStore("user", () => {
     avatar.value = ""
     id.value = 0
     resetRouter()
-    permissionStore.reset()
     resetTagsView()
     console.log("登出成功")
   }

@@ -135,7 +135,7 @@ router.post('/avatar',
   authenticateToken,
   apiLimiter,
   (req, res, next) => {
-    uploadAvatar.single('avatar')(req, res, (err) => {
+    uploadAvatar.single('file')(req, res, (err) => {
       if (err instanceof multer.MulterError) {
         if (err.code === 'LIMIT_FILE_SIZE') {
           return res.status(400).json({

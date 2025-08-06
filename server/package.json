@@ -7,7 +7,7 @@
   "type": "commonjs",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "npx nodemon server.js",
     "dev": "pm2 start ecosystem.config.js",
     "dev:cluster": "pm2 start ecosystem.config.js --only express-pm2-cluster --env development_cluster",  
     "dev:stop": "pm2 stop ecosystem.config.js",

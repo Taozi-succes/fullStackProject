@@ -67,6 +67,15 @@ export const constantRoutes: RouteRecordRaw[] = [
           svgIcon: "dashboard",
           affix: true
         }
+      },
+      {
+        path: "profile",
+        component: () => import("@/pages/profile/index.vue"),
+        name: "Profile",
+        meta: {
+          title: "个人信息",
+          hidden: true
+        }
       }
     ]
   },
@@ -86,15 +95,6 @@ export const constantRoutes: RouteRecordRaw[] = [
         name: "UnoCSS",
         meta: {
           title: "UnoCSS"
-        }
-      },
-      {
-        path: "element-plus",
-        component: () => import("@/pages/demo/element-plus/index.vue"),
-        name: "ElementPlus",
-        meta: {
-          title: "Element Plus",
-          keepAlive: true
         }
       },
       {
@@ -127,7 +127,8 @@ export const constantRoutes: RouteRecordRaw[] = [
             children: [
               {
                 path: "level4",
-                component: () => import("@/pages/demo/level2/level3/level4/index.vue"),
+                component: () =>
+                  import("@/pages/demo/level2/level3/level4/index.vue"),
                 name: "Level4",
                 meta: {
                   title: "四级路由",
@@ -216,7 +217,7 @@ export const dynamicRoutes: RouteRecordRaw[] = [
     redirect: "/permission/page-level",
     name: "Permission",
     meta: {
-      title: "权限演示",
+      title: "用户管理",
       elIcon: "Lock",
       // 可以在根路由中设置角色
       roles: ["admin", "editor"],
@@ -241,6 +242,17 @@ export const dynamicRoutes: RouteRecordRaw[] = [
           title: "按钮级",
           // 如果未设置角色，则表示：该页面不需要权限，但会继承根路由的角色
           roles: undefined
+        }
+      },
+      {
+        path: "user-list",
+        component: () => import("@/pages/demo/element-plus/index.vue"),
+        name: "UserList",
+        meta: {
+          title: "用户列表",
+          keepAlive: true,
+          roles: ["admin"]
+
         }
       }
     ]

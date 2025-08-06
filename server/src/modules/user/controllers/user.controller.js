@@ -146,11 +146,10 @@ class UserController {
       }
 
       // 调用服务层处理更新
-      const result = await this.userService.updateUser(userId, updateDto.getData());
+      const result = await this.userService.updateUser(userId, updateDto.getUpdateFields());
       
       if (!result.success) {
-        const statusCode = this.getStatusCodeByErrorCode(result.code);
-        return res.status(statusCode).json(result);
+        return res.error(result.message, result.code)
       }
 
       res.status(HTTP_STATUS.OK).json(result);
@@ -441,16 +440,6 @@ class UserController {
       
       // 数据验证
       const passwordDto = new ChangePasswordDto(req.body);
-      const validationResult = passwordDto.validate();
-      
-      if (!validationResult.isValid) {
-        return res.status(HTTP_STATUS.BAD_REQUEST).json({
-          success: false,
-          code: ERROR_CODES.VALIDATION_ERROR,
-          message: '请求参数验证失败',
-          errors: validationResult.errors
-        });
-      }
 
       // 调用服务层处理密码修改
       const result = await this.userService.changePassword(userId, passwordDto.getData());

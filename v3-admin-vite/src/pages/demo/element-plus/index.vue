@@ -263,7 +263,6 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getUser
 
 <template>
   <div class="app-container">
-    <img src="https://httpbin.org/image/png" alt="测试" style="width:100px;">
     <el-alert
       title="用户管理"
       type="info"

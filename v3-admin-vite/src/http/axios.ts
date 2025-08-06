@@ -7,7 +7,8 @@ import { useUserStore } from "@/pinia/stores/user"
 /** 退出登录并强制刷新页面（会重定向到登录页） */
 function logout() {
   useUserStore().logout()
-  location.reload()
+  // location.reload()
+  console.log("logout")
 }
 
 /** 创建请求实例 */
@@ -31,32 +32,32 @@ function createInstance() {
       if (responseType === "blob" || responseType === "arraybuffer") return apiData
 
       // 检查后端返回的success字段
-      if (apiData.success === true) {
+      if (apiData?.success && apiData.success === true) {
         // 成功响应，直接返回数据
         return apiData
       } else if (apiData.success === false) {
         // 业务错误
         const errorCode = apiData.code
-        if (errorCode === "UNAUTHORIZED" || errorCode === "TOKEN_EXPIRED") {
+        if (errorCode === 3001 || errorCode === 3002) {
           // Token 过期时
           return logout()
         }
         // 其他业务错误
-        ElMessage.error(apiData.message || "请求失败")
+        return ElMessage.error(apiData.message || "请求失败")
       }
 
       // // 兼容旧的code字段格式
-      const code = apiData.code
-      if (code !== undefined) {
-        switch (code) {
-          case 0:
-            return apiData
-          case 401:
-            return logout()
-          default:
-            ElMessage.error(apiData.message || "Error")
-        }
-      }
+      // const code = apiData.code
+      // if (code !== undefined) {
+      //   switch (code) {
+      //     case 0:
+      //       return apiData
+      //     case 401:
+      //       return logout()
+      //     default:
+      //       ElMessage.error(apiData.message || "Error")
+      //   }
+      // }
 
       // 如果既没有success字段也没有code字段，可能是非本系统接口
       return apiData

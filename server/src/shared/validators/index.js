@@ -154,10 +154,10 @@ const validateChangePassword = [
     .withMessage('当前密码不能为空'),
     
   body('newPassword')
-    .isLength({ min: 8, max: 128 })
-    .withMessage('新密码长度必须在8-128个字符之间')
-    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
-    .withMessage('新密码必须包含至少一个大写字母、一个小写字母、一个数字和一个特殊字符'),
+    .isLength({ min: 3, max: 128 })
+    .withMessage('新密码长度必须在3-128个字符之间')
+    .matches(/^(?=.*[a-z])(?=.*\d)[A-Za-z\d]/)
+    .withMessage('新密码必须包含至少一个字母和一个数字'),
     
   body('confirmPassword')
     .custom((value, { req }) => {

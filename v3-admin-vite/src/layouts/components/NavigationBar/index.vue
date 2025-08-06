@@ -35,6 +35,11 @@ function logout() {
   userStore.logout()
   router.push("/login")
 }
+
+/** 跳转到个人信息页面 */
+function goToProfile() {
+  router.push("/profile")
+}
 </script>
 
 <template>
@@ -59,13 +64,12 @@ function logout() {
         </div>
         <template #dropdown>
           <el-dropdown-menu>
-            <a target="_blank" href="https://github.com/un-pany/v3-admin-vite">
-              <el-dropdown-item>GitHub</el-dropdown-item>
-            </a>
-            <a target="_blank" href="https://gitee.com/un-pany/v3-admin-vite">
-              <el-dropdown-item>Gitee</el-dropdown-item>
-            </a>
+            <el-dropdown-item @click="goToProfile">
+              <el-icon><UserFilled /></el-icon>
+              个人信息
+            </el-dropdown-item>
             <el-dropdown-item divided @click="logout">
+              <el-icon><SwitchButton /></el-icon>
               退出登录
             </el-dropdown-item>
           </el-dropdown-menu>

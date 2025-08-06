@@ -36,12 +36,17 @@ export default defineConfig(({ mode }) => {
       // 是否自动打开浏览器
       open: true,
       // 反向代理
+      // 反向代理
       proxy: {
         "/api": {
           target: "http://localhost:3000",
-          // 是否为 WebSocket
           ws: false,
-          // 是否允许跨域
+          changeOrigin: true
+        },
+        // 添加静态资源代理
+        "/uploads": {
+          target: "http://localhost:3000",
+          ws: false,
           changeOrigin: true
         }
       },
@@ -132,12 +137,12 @@ export default defineConfig(({ mode }) => {
       AutoImport({
         imports: ["vue", "vue-router", "pinia"],
         dts: "types/auto/auto-imports.d.ts",
-        resolvers: [ElementPlusResolver()]
+        resolvers: [ElementPlusResolver({ importStyle: true })]
       }),
       // 自动按需导入组件
       Components({
         dts: "types/auto/components.d.ts",
-        resolvers: [ElementPlusResolver()]
+        resolvers: [ElementPlusResolver({ importStyle: true })]
       }),
       // 为项目开启 MCP Server
       VueMcp()
