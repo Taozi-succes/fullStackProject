@@ -9,7 +9,7 @@ const logger = require('../../core/logger');
 
 /**
  * 验证结果处理中间件
- * 检查验证结果并返回错误信息
+ * 检查验证结果并返回所有的错误信息
  */
 const handleValidationErrors = (req, res, next) => {
   const errors = validationResult(req);
@@ -28,11 +28,11 @@ const handleValidationErrors = (req, res, next) => {
       body: req.body
     });
 
-    return res.status(HTTP_STATUS.BAD_REQUEST).json({
-      success: false,
+    return res.error({
+      errors: formattedErrors,
+      message: '请求参数验证失败12',
       code: ERROR_CODES.VALIDATION_ERROR,
-      message: '请求参数验证失败',
-      errors: formattedErrors
+      statusCode: HTTP_STATUS.BAD_REQUEST
     });
   }
   
@@ -84,7 +84,6 @@ const validateRegister = [
     
   handleValidationErrors
 ];
-
 /**
  * 用户登录验证规则
  */

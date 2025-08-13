@@ -3,7 +3,6 @@
  * 定义API请求和响应的数据结构
  */
 const { VALIDATION_RULES } = require('../../../common/constants');
-const logger = require('../../../core/logger');
 const { ValidationUtils } = require('../../../shared/utils');
 
 /**
@@ -18,6 +17,8 @@ class LoginDto {
     this.rememberMe = Boolean(data.rememberMe);
   }
 
+  // 数据验证已经在中间层validateLogin完成，此处不再重复验证  /shared/validation/index.js
+
   /**
    * 获取数据
    */
@@ -31,63 +32,6 @@ class LoginDto {
     };
   }
 
-  /**
-   * 验证登录数据
-   */
-  validate() {
-    const errors = [];
-
-    // 验证用户名
-    if (!this.username) {
-      errors.push({
-        field: 'username',
-        message: '用户名不能为空'
-      });
-    } else if (this.username.length < VALIDATION_RULES.USERNAME.MIN_LENGTH) {
-      errors.push({
-        field: 'username',
-        message: `用户名长度不能少于${VALIDATION_RULES.USERNAME.MIN_LENGTH}位`
-      });
-    } else if (this.username.length > VALIDATION_RULES.USERNAME.MAX_LENGTH) {
-      errors.push({
-        field: 'username',
-        message: `用户名长度不能超过${VALIDATION_RULES.USERNAME.MAX_LENGTH}位`
-      });
-    }
-
-    // 验证密码
-    if (!this.password) {
-      errors.push({
-        field: 'password',
-        message: '密码不能为空'
-      });
-    } else if (this.password.length < VALIDATION_RULES.PASSWORD.MIN_LENGTH) {
-      errors.push({
-        field: 'password',
-        message: `密码长度不能少于${VALIDATION_RULES.PASSWORD.MIN_LENGTH}位`
-      });
-    }
-
-    // 验证验证码
-    if (!this.captchaId) {
-      errors.push({
-        field: 'captchaId',
-        message: '验证码ID不能为空'
-      });
-    }
-
-    if (!this.captchaCode) {
-      errors.push({
-        field: 'captchaCode',
-        message: '验证码不能为空'
-      });
-    }
-
-    return {
-      isValid: errors.length === 0,
-      errors
-    };
-  }
 }
 
 /**

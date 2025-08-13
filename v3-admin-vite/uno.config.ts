@@ -1,4 +1,9 @@
-import { defineConfig, presetAttributify, presetWind3 } from "unocss"
+import {
+  defineConfig,
+  presetAttributify,
+  presetWind3,
+  transformerDirectives
+} from "unocss"
 
 export default defineConfig({
   // 预设
@@ -21,5 +26,6 @@ export default defineConfig({
     "flex-center": "flex justify-center items-center",
     "flex-x-center": "flex justify-center",
     "flex-y-center": "flex items-center"
-  }
+  },
+  transformers: [transformerDirectives()] // 指令转换器  用于在style标签中使用指令@apply 等指令
 })

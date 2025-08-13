@@ -21,17 +21,7 @@ class UserController {
     try {
       // 数据验证
       const loginDto = new LoginDto(req.body);
-      const validationResult = loginDto.validate();
       
-      if (!validationResult.isValid) {
-        return res.status(HTTP_STATUS.BAD_REQUEST).json({
-          success: false,
-          code: ERROR_CODES.VALIDATION_ERROR,
-          message: '请求参数验证失败',
-          errors: validationResult.errors
-        });
-      }
-
       // 调用服务层处理登录
       const result = await this.userService.login(loginDto.getData());
       
