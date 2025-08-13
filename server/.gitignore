@@ -1,5 +1,25 @@
+# 依赖
 node_modules
-# Keep environment variables out of version control
+
+# 构建输出
+dist
+
+# 环境变量（保留示例文件）
 .env
+.env.*
+!.env.example
+
+# 日志
+logs
+*.log
+
+# 上传的文件（开发环境）
+uploads/
+
+# 生成的文件
+src/generated/
+
+# 测试覆盖率报告
+coverage
 
 /src/generated/prisma

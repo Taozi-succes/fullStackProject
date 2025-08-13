@@ -1,18 +1,33 @@
-# Common
+# 构建输出
 dist
+
+# 依赖
 node_modules
+
+# 缓存文件
 .eslintcache
 vite.config.*.timestamp*
 
-# MacOS
-.DS_Store
+# 环境变量（保留示例文件）
+.env
+.env.*
+!.env.example
 
-# Local env files
-*.local
-
-# Logs
+# 日志
 *.log
 
-# Use the pnpm
+# 编辑器文件
+.DS_Store
+.vscode
+.idea
+
+# 锁文件（根据团队约定选择保留哪种）
 package-lock.json
 yarn.lock
+pnpm-lock.yaml
+
+# 自动生成的类型文件
+types/auto/
+
+# 测试覆盖率报告
+coverage
