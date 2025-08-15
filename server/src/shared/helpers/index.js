@@ -160,8 +160,10 @@ const requireRole = (requiredRoles, options = {}) => {
         if (!req.user.roles || !Array.isArray(req.user.roles)) {
             logger.warn("用户角色信息缺失", { userId: req.user.userId });
             return res.error(
-                "用户角色信息缺失，无法进行权限检查!!",
-                ERROR_CODES.INSUFFICIENT_PERMISSIONS
+                {
+                    message: "用户角色信息缺失,权限不足，无法访问此资源!!",
+                    code: ERROR_CODES.INSUFFICIENT_PERMISSIONS,
+                }
             );
         }
 

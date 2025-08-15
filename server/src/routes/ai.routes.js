@@ -9,7 +9,7 @@ const router = express.Router();
 router.post(
     "/stream",
     authenticateToken,
-    requireRole("user"),
+    requireRole("admin"),
     aiStreamController.streamMessage
 );
 
