@@ -94,7 +94,11 @@ const authenticateToken = async (req, res, next) => {
             });
         }
 
-        return res.error("认证服务异常11", ERROR_CODES.TOKEN_INVALID);
+        return res.error({
+            error:error.message || "认证服务异常",
+            message: "认证服务异常11",
+            code: ERROR_CODES.TOKEN_INVALID,
+        });
     }
 };
 
