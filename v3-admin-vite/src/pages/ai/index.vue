@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { ElMessage } from "element-plus"
 import { marked } from "marked"
 import { nextTick, ref } from "vue"
 import { streamRequest } from "@/pages/ai/apis"
@@ -55,7 +54,7 @@ async function sendMessage() {
   scrollToBottom()
 
   try {
-    const stream = streamRequest("/api/ai/stream", {
+    const stream = streamRequest("/ai/stream", {
       messages: messages.value.map(m => ({ role: m.role, content: m.content }))
     })
 

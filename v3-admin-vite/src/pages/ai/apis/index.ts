@@ -2,8 +2,10 @@ import { getToken } from "@@/utils/cache/cookies"
 
 export async function* streamRequest(url: string, data: any) {
   const token = getToken()
+  const baseURL = import.meta.env.VITE_BASE_URL
+  const fullURL = `${baseURL}${url}`
 
-  const response = await fetch(url, {
+  const response = await fetch(fullURL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
