@@ -211,8 +211,10 @@ const requireRole = (requiredRoles, options = {}) => {
             });
 
             return res.error(
-                "权限不足，无法访问此资源!!",
-                ERROR_CODES.INSUFFICIENT_PERMISSIONS
+                {
+                    message: "权限不足，无法访问此资源!!",
+                    code: ERROR_CODES.INSUFFICIENT_PERMISSIONS,
+                }
             );
         }
 
@@ -372,7 +374,7 @@ const corsOptions = {
  */
 const responseFormatter = (req, res, next) => {
     // 成功响应格式化
-    res.success = (data = null, message = "操作成功", code = 200) => {
+    res.success = ({data = null, message = "操作成功", code = 200}) => {
         res.status(code).json({
             success: true,
             message,

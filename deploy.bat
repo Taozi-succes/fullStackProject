@@ -5,12 +5,12 @@ echo.
 
 cd v3-admin-vite
 start /min cmd /k "npm run dev"
-echo 前端已启动
+echo cd v3-admin-vite npm run dev 前端已启动
 cd ..
 
 cd server
 start /min cmd /k "npm run dev"
-echo 后端已启动
+echo cd server npm run dev 后端已启动·
 cd ..
 
 echo.

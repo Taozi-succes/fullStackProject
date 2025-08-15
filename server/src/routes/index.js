@@ -6,6 +6,8 @@ const express = require("express");
 const authRoutes = require("./auth.routes");
 const userRoutes = require("./user.routes");
 const adminRoutes = require("./admin.routes");
+const aiRoutes = require("./ai.routes");
+
 const captchaRoutes = require("./captcha.routes");
 const { notFoundHandler } = require("../shared/helpers");
 const logger = require("../core/logger");
@@ -33,7 +35,7 @@ router.use("/auth", authRoutes);
 router.use("/user", userRoutes);
 router.use("/captcha", captchaRoutes);
 router.use("/admin", adminRoutes);
-
+router.use("/ai", aiRoutes);
 
 // 404处理
 router.use("*", notFoundHandler);

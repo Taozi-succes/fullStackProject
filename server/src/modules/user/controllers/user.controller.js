@@ -710,7 +710,7 @@ class UserController {
       if (!result) {
         return res.error('获取用户列表失败')
       }
-      res.success(result,'获取用户列表成功!');
+      res.success(result);
       
     } catch (error) {
       logger.error('获取所有用户控制器错误:', error);

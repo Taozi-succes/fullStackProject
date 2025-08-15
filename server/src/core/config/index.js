@@ -70,6 +70,12 @@ class ConfigService {
         lazyConnect: this.getBoolean('REDIS_LAZY_CONNECT', true),
         retryDelayOnFailover: this.getNumber('REDIS_RETRY_DELAY', 100),
         maxRetriesPerRequest: this.getNumber('REDIS_MAX_RETRIES', 3)
+      },
+
+      // ai模型配置
+      ai: {
+        apiKey: this.getString('AI_MODEL_API_KEY', 'your-openai-key'),
+        modelName: this.getString('AI_MODEL_NAME', 'gpt-3.5-turbo')
       }
     };
 
