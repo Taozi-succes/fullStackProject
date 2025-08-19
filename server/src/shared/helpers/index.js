@@ -356,6 +356,8 @@ const corsOptions = {
         const allowedDomains = [
             "http://117.72.189.59",
             "https://117.72.189.59",
+            "https://ittao.top",
+            "https://www.ittao.top",
         ];
 
         if (process.env.NODE_ENV === "development") {
