@@ -4,7 +4,12 @@ const VITE_APP_TITLE = import.meta.env.VITE_APP_TITLE
 
 <template>
   <footer class="layout-footer">
-    MIT © 2021-PRESENT {{ VITE_APP_TITLE }}
+    <div class="content">
+      <a href="http://beian.miit.gov.cn/" target="_blank">浙ICP备2025192127号</a>
+      <span>
+        ©2025 Created by {{ VITE_APP_TITLE }}
+      </span>
+    </div>
   </footer>
 </template>
 
@@ -16,5 +21,9 @@ const VITE_APP_TITLE = import.meta.env.VITE_APP_TITLE
   align-items: center;
   justify-content: center;
   color: var(--el-text-color-placeholder);
+  .content {
+    display: flex;
+    gap: 10px;
+  }
 }
 </style>

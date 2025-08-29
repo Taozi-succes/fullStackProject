@@ -3,6 +3,7 @@ import type { FormRules } from "element-plus"
 import type { LoginRequestData } from "./apis/type"
 import ThemeSwitch from "@@/components/ThemeSwitch/index.vue"
 import { Key, Loading, Lock, Picture, User } from "@element-plus/icons-vue"
+import { Footer } from "@/layouts/components/index"
 import { useSettingsStore } from "@/pinia/stores/settings"
 import { useUserStore } from "@/pinia/stores/user"
 import { getCaptchaApi, loginApi } from "./apis"
@@ -187,11 +188,15 @@ createCode()
         </el-form>
       </div>
     </div>
+    <div class="footer">
+      <Footer />
+    </div>
   </div>
 </template>
 
 <style lang="scss" scoped>
 .login-container {
+  position: relative;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -250,6 +255,10 @@ createCode()
         }
       }
     }
+  }
+  .footer {
+    position: fixed;
+    bottom: 0;
   }
 }
 </style>
